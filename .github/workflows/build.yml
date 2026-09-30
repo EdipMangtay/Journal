@@ -1,0 +1,72 @@
+name: Build and Verify Installers
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: windows
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: windows/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run dist:win
+      - name: Install and test the actual Windows package
+        shell: pwsh
+        run: |
+          $installer = Join-Path $PWD 'release/Liquidity-Edge-Windows-Setup.exe'
+          $target = Join-Path $env:RUNNER_TEMP 'LiquidityEdgeInstalled'
+          $process = Start-Process -FilePath $installer -ArgumentList '/S', "/D=$target" -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw "Installer failed: $($process.ExitCode)" }
+          $app = Join-Path $target 'Liquidity Edge.exe'
+          if (!(Test-Path $app)) { throw 'Installed executable was not found.' }
+          Get-Process 'Liquidity Edge' -ErrorAction SilentlyContinue | Stop-Process -Force
+          $env:JOURNAL_E2E_EXECUTABLE = $app
+          npm run test:e2e
+          if ($LASTEXITCODE -ne 0) { throw 'Installed application tests failed.' }
+          Get-FileHash $installer -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  Liquidity-Edge-Windows-Setup.exe" } | Set-Content -Encoding utf8 release/SHA256SUMS-Windows.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Windows-Installer
+          path: |
+            windows/release/Liquidity-Edge-Windows-Setup.exe
+            windows/release/SHA256SUMS-Windows.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Windows-Test-Evidence
+          path: windows/test-results/
+  macos:
+    runs-on: macos-15
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: macos
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run native tests
+        run: xcodebuild -quiet test -project LiquidityEdge.xcodeproj -scheme LiquidityEdge -destination 'platform=macOS' -derivedDataPath build/testing-ci CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO
+      - name: Build universal Mac installers
+        run: bash Scripts/package-release.sh 1.0.0
+      - name: Verify installer payload
+        run: |
+          pkgutil --expand-full release/Liquidity-Edge-macOS-Universal.pkg build/expanded-package
+          find build/expanded-package -name 'Liquidity Edge' -type f -exec file {} \;
+          hdiutil verify release/Liquidity-Edge-macOS-Universal.dmg
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macOS-Installers
+          path: macos/release/*

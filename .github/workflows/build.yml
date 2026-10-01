@@ -37,7 +37,8 @@ jobs:
           $env:JOURNAL_E2E_EXECUTABLE = $app
           npm run test:e2e
           if ($LASTEXITCODE -ne 0) { throw 'Installed application tests failed.' }
-          Get-FileHash $installer -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  Liquidity-Edge-Windows-Setup.exe" } | Set-Content -Encoding utf8 release/SHA256SUMS-Windows.txt
+          $hash = (Get-FileHash $installer -Algorithm SHA256).Hash.ToLower()
+          [IO.File]::WriteAllText((Join-Path $PWD 'release/SHA256SUMS-Windows.txt'), "$hash  Liquidity-Edge-Windows-Setup.exe`n", [Text.UTF8Encoding]::new($false))
       - name: Verify reinstall and uninstall preserve journal data
         shell: pwsh
         run: |
@@ -49,11 +50,15 @@ jobs:
           Set-Content -Path $marker -Value 'Keep journal data'
           $process = Start-Process -FilePath $installer -ArgumentList '/S', "/D=$target" -Wait -PassThru
           if ($process.ExitCode -ne 0) { throw 'Reinstall failed.' }
-          Get-Process 'Liquidity Edge' -ErrorAction SilentlyContinue | Stop-Process -Force
+          Start-Sleep -Seconds 3
+          Get-Process 'Liquidity Edge' -ErrorAction SilentlyContinue | ForEach-Object { $_ | Stop-Process -Force; $_.WaitForExit() }
           if (!(Test-Path $marker)) { throw 'Reinstall removed journal data.' }
           $uninstaller = Join-Path $target 'Uninstall Liquidity Edge.exe'
-          Start-Process -FilePath $uninstaller -ArgumentList '/S' -Wait
-          Start-Sleep -Seconds 3
+          # NSIS's _?= avoids the asynchronous self-copy bootstrap and fixes the test target.
+          $removed = Start-Process -FilePath $uninstaller -ArgumentList '/S', '/currentuser', "_?=$target" -Wait -PassThru
+          if ($removed.ExitCode -ne 0) { throw "Uninstall failed: $($removed.ExitCode)" }
+          $deadline = (Get-Date).AddSeconds(30)
+          while ((Test-Path (Join-Path $target 'Liquidity Edge.exe')) -and (Get-Date) -lt $deadline) { Start-Sleep -Milliseconds 500 }
           if (!(Test-Path $marker)) { throw 'Uninstall removed journal data.' }
           if (Test-Path (Join-Path $target 'Liquidity Edge.exe')) { throw 'Uninstall did not remove the executable.' }
       - uses: actions/upload-artifact@v4

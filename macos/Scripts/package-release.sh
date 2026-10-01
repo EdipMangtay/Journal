@@ -3,6 +3,13 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 VERSION="${1:-1.0.0}"
 [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo 'Use a semantic version, e.g. 1.0.0.' >&2; exit 1; }
+if [[ "${REQUIRE_SIGNING:-0}" == 1 || -n "${MACOS_NOTARY_PROFILE:-}" ]]; then
+  [[ "${MACOS_APP_IDENTITY:-}" == 'Developer ID Application:'* && "${MACOS_INSTALLER_IDENTITY:-}" == 'Developer ID Installer:'* && -n "${MACOS_NOTARY_PROFILE:-}" ]] || {
+    echo 'Trusted distribution requires Developer ID Application, Developer ID Installer and a notarytool profile.' >&2; exit 1;
+  }
+fi
+NOTARY_ARGS=(--keychain-profile "${MACOS_NOTARY_PROFILE:-}")
+if [[ -n "${MACOS_NOTARY_KEYCHAIN:-}" ]]; then NOTARY_ARGS+=(--keychain "$MACOS_NOTARY_KEYCHAIN"); fi
 TASK_ROOT="$PWD/build/distribution-$VERSION"
 TASK_OUTPUT="$PWD/release"
 TASK_APP="$TASK_ROOT/root/Applications/Liquidity Edge.app"
@@ -29,6 +36,13 @@ SIGNING_ARGS=(--force --sign "${MACOS_APP_IDENTITY:--}")
 if [[ -n "${MACOS_APP_IDENTITY:-}" ]]; then SIGNING_ARGS+=(--options runtime --timestamp); fi
 codesign "${SIGNING_ARGS[@]}" "$TASK_APP"
 codesign --verify --deep --strict "$TASK_APP"
+if [[ -n "${MACOS_NOTARY_PROFILE:-}" ]]; then
+  ditto -c -k --keepParent "$TASK_APP" "$TASK_ROOT/Notarization.zip"
+  xcrun notarytool submit "$TASK_ROOT/Notarization.zip" "${NOTARY_ARGS[@]}" --wait
+  xcrun stapler staple "$TASK_APP"
+  xcrun stapler validate "$TASK_APP"
+  spctl --assess --type execute --verbose "$TASK_APP"
+fi
 TASK_ARCHS="$(lipo -archs "$TASK_APP/Contents/MacOS/Liquidity Edge")"
 [[ " $TASK_ARCHS " == *' arm64 '* && " $TASK_ARCHS " == *' x86_64 '* ]] || { echo 'Universal binary verification failed.' >&2; exit 1; }
 pkgbuild --analyze --root "$TASK_ROOT/root" "$TASK_ROOT/components.plist"
@@ -43,9 +57,10 @@ if [[ -n "${MACOS_INSTALLER_IDENTITY:-}" ]]; then PKG_ARGS+=(--sign "$MACOS_INST
 TASK_PKG="$TASK_OUTPUT/Liquidity-Edge-macOS-Universal.pkg"
 productbuild "${PKG_ARGS[@]}" "$TASK_PKG"
 if [[ -n "${MACOS_NOTARY_PROFILE:-}" ]]; then
-  [[ -n "${MACOS_APP_IDENTITY:-}" && -n "${MACOS_INSTALLER_IDENTITY:-}" ]] || { echo 'Notarization requires both Developer ID identities.' >&2; exit 1; }
-  xcrun notarytool submit "$TASK_PKG" --keychain-profile "$MACOS_NOTARY_PROFILE" --wait
+  xcrun notarytool submit "$TASK_PKG" "${NOTARY_ARGS[@]}" --wait
   xcrun stapler staple "$TASK_PKG"
+  xcrun stapler validate "$TASK_PKG"
+  spctl --assess --type install --verbose "$TASK_PKG"
 fi
 mkdir -p "$TASK_ROOT/dmg"
 ditto "$TASK_APP" "$TASK_ROOT/dmg/Liquidity Edge.app"
@@ -55,8 +70,9 @@ hdiutil create -ov -volname 'Liquidity Edge' -srcfolder "$TASK_ROOT/dmg" \
   -format UDZO "$TASK_OUTPUT/Liquidity-Edge-macOS-Universal.dmg"
 if [[ -n "${MACOS_APP_IDENTITY:-}" ]]; then codesign --sign "$MACOS_APP_IDENTITY" --timestamp "$TASK_OUTPUT/Liquidity-Edge-macOS-Universal.dmg"; fi
 if [[ -n "${MACOS_NOTARY_PROFILE:-}" ]]; then
-  xcrun notarytool submit "$TASK_OUTPUT/Liquidity-Edge-macOS-Universal.dmg" --keychain-profile "$MACOS_NOTARY_PROFILE" --wait
+  xcrun notarytool submit "$TASK_OUTPUT/Liquidity-Edge-macOS-Universal.dmg" "${NOTARY_ARGS[@]}" --wait
   xcrun stapler staple "$TASK_OUTPUT/Liquidity-Edge-macOS-Universal.dmg"
+  xcrun stapler validate "$TASK_OUTPUT/Liquidity-Edge-macOS-Universal.dmg"
 fi
 (cd "$TASK_OUTPUT" && shasum -a 256 Liquidity-Edge-macOS-Universal.pkg Liquidity-Edge-macOS-Universal.dmg > SHA256SUMS-macOS.txt)
 echo "Installers: $TASK_OUTPUT"

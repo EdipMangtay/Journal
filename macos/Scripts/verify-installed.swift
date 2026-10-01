@@ -8,8 +8,9 @@ import CoreGraphics
         let configuration = NSWorkspace.OpenConfiguration()
         configuration.createsNewApplicationInstance = true
         configuration.activates = true
-        // The argument domain forces an in-memory demo, without changing saved defaults.
-        configuration.arguments = ["-journal.started", "NO"]
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("journal-install-test-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        configuration.environment = ProcessInfo.processInfo.environment.merging(["JOURNAL_TEST_DATA_DIR": directory.path]) { _, new in new }
         let application: NSRunningApplication = try await withCheckedThrowingContinuation { continuation in
             NSWorkspace.shared.openApplication(at: url, configuration: configuration) { application, error in
                 if let error { continuation.resume(throwing: error) }
@@ -32,7 +33,10 @@ import CoreGraphics
             if application.isFinishedLaunching && visible {
                 try await Task.sleep(nanoseconds: 2_000_000_000)
                 guard !application.isTerminated else { throw NSError(domain: "InstallerTest", code: 5) }
-                print("PASS: installed app launched with its full-size window in isolated demo mode: \(url.path)")
+                guard FileManager.default.fileExists(atPath: directory.appendingPathComponent("Journal.store").path) else {
+                    throw NSError(domain: "InstallerTest", code: 7, userInfo: [NSLocalizedDescriptionKey: "The fresh local journal was not created."])
+                }
+                print("PASS: installed app launched with its full-size window and a new local journal: \(url.path)")
                 return
             }
             try await Task.sleep(nanoseconds: 500_000_000)

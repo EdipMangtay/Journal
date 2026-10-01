@@ -24,7 +24,7 @@ struct JournalError: LocalizedError {
     init(demo: Bool, storageURL: URL? = nil) throws {
         isDemo = demo
         persistsPreferences = !demo && storageURL == nil
-        if let data = UserDefaults.standard.data(forKey: "journal.preferences"), let saved = try? JSONDecoder().decode(JournalPreferences.self, from: data) { preferences = saved } else { preferences = JournalPreferences() }
+        if storageURL == nil, let data = UserDefaults.standard.data(forKey: "journal.preferences"), let saved = try? JSONDecoder().decode(JournalPreferences.self, from: data) { preferences = saved } else { preferences = JournalPreferences() }
         let configuration: ModelConfiguration
         if demo { configuration = ModelConfiguration(schema: Self.schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none) }
         else {

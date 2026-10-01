@@ -5,15 +5,23 @@ import os from 'node:os';
 
 test('complete offline journal, all screens, images, backup and persistence',async()=>{
   test.setTimeout(180000);
-  const directory=await fs.mkdtemp(path.join(os.tmpdir(),'journal-ui-test-'));
+  const temporary=await fs.mkdtemp(path.join(os.tmpdir(),'journal-ui-test-'));
+  const directory=path.join(temporary,'new-user','Liquidity Edge');
+  await expect(fs.access(directory)).rejects.toThrow();
   const options=process.env.JOURNAL_E2E_EXECUTABLE?{executablePath:process.env.JOURNAL_E2E_EXECUTABLE,args:[]}:{args:['.']};
   const launch=()=>electron.launch({...options,env:{...process.env,JOURNAL_TEST_DATA_DIR:directory},timeout:30000});
-  let app=await launch(),page=await app.firstWindow();const errors=[];
-  const watch=()=>page.on('pageerror',error=>errors.push(error.message));watch();
+  let app,page;const errors=[];
+  const watch=()=>page.on('pageerror',error=>errors.push(error.message));
   const nav=async name=>page.locator('.nav').getByRole('button',{name,exact:true}).click();
   const press=async name=>page.getByRole('button',{name,exact:true}).click();
   try{
+    app=await launch();page=await app.firstWindow();watch();
     await expect(page.getByRole('heading',{name:'Process is the edge.'})).toBeVisible();
+    await expect(page.locator('.demo-banner')).toHaveCount(0);
+    const fresh=await page.evaluate(()=>window.journal.load());
+    for(const field of ['trades','setups','reviews','screenshots'])expect(fresh[field]).toEqual([]);
+    await nav('Trades');await expect(page.locator('[data-trade]')).toHaveCount(0);
+    await nav('Settings');await press('Open Demo');await nav('Dashboard');
     await expect(page.locator('.demo-banner')).toBeVisible();
     await page.screenshot({path:'test-results/desktop-dashboard.png',fullPage:true});
     await page.screenshot({path:'test-results/dashboard-viewport.png'});
@@ -51,5 +59,5 @@ test('complete offline journal, all screens, images, backup and persistence',asy
     await page.locator('[data-trade]').click();await press('Delete');await page.locator('#confirm').getByRole('button',{name:'Delete',exact:true}).click();await expect(page.locator('[data-trade]')).toHaveCount(0);
     await app.evaluate(({dialog},file)=>{dialog.showOpenDialog=async()=>({canceled:false,filePaths:[file]});dialog.showMessageBox=async()=>({response:1});},backup);await nav('Settings');await press('Restore JSON backup');await nav('Trades');await expect(page.locator('[data-trade]')).toHaveCount(1);
     expect(errors).toEqual([]);
-  }finally{await app.close();await fs.rm(directory,{recursive:true,force:true});}
+  }finally{try{await app?.close();}finally{await fs.rm(temporary,{recursive:true,force:true});}}
 });

@@ -2,23 +2,25 @@
 
 Offline trading journal for macOS and Windows. Trades, performance analytics, calendar, playbooks, reviews, screenshots, and portable JSON backups.
 
-## Download
+## Preview Downloads (Unsigned)
 
 | Platform | Installer | Requirements |
 | --- | --- | --- |
-| Windows | [Download Setup.exe](https://github.com/EdipMangtay/Journal/releases/latest/download/Liquidity-Edge-Windows-Setup.exe) | Windows 10/11, x64 |
-| MacBook / Mac | [Download PKG](https://github.com/EdipMangtay/Journal/releases/latest/download/Liquidity-Edge-macOS-Universal.pkg) | macOS 14+, Apple Silicon or Intel |
-| Mac alternative | [Download DMG](https://github.com/EdipMangtay/Journal/releases/latest/download/Liquidity-Edge-macOS-Universal.dmg) | Drag the app to Applications |
+| Windows | [Download Setup.exe](https://github.com/EdipMangtay/Journal/releases/download/v1.0.1-preview.1/Liquidity-Edge-Windows-Setup.exe) | Windows 10/11, x64 |
+| MacBook / Mac | [Download PKG](https://github.com/EdipMangtay/Journal/releases/download/v1.0.1-preview.1/Liquidity-Edge-macOS-Universal.pkg) | macOS 14+, Apple Silicon or Intel |
+| Mac alternative | [Download DMG](https://github.com/EdipMangtay/Journal/releases/download/v1.0.1-preview.1/Liquidity-Edge-macOS-Universal.dmg) | Drag the app to Applications |
 
 The installers include everything required to run the app. Developer tools and additional runtimes are not needed. Download from **Releases**, not the source-code ZIP.
 
-**This initial release is not signed with distribution certificates.** macOS Gatekeeper or Windows SmartScreen may require an explicit first-run approval. See [installation instructions](INSTALLATION.md). A warning-free first launch requires Apple notarization and Windows signing; this release does not claim either.
+**These preview files do not have trusted distribution signatures.** They may be blocked by macOS Gatekeeper or Windows SmartScreen. They are not a warning-free public release. Stable releases are now blocked unless Windows Authenticode signatures and Apple notarization pass verification. See [signing prerequisites](SIGNING.md). Signing establishes publisher identity; Windows can still show reputation warnings for newly released files.
+
+New installations open an empty journal: no trades, setups, reviews or screenshots are preloaded. Users enter their own data, which is saved on their own computer and restored on the next launch. Sample data is available only after explicitly selecting the isolated demo in Settings; it is never written into the real journal. Existing journals are preserved during upgrades.
 
 ![macOS dashboard](docs/images/macos-dashboard.png)
 
 ## Platforms
 
-- `macos/`: the original native SwiftUI / SwiftData / Swift Charts application. Its existing application source is preserved.
+- `macos/`: the native SwiftUI / SwiftData / Swift Charts application, preserving the original UI. The distribution copy starts with an empty local journal instead of automatically opening the demo.
 - `windows/`: an Electron desktop implementation with its own offline storage and a self-contained, per-user NSIS installer. It is not a Swift binary renamed to `.exe`.
 - Both implementations use the same version-1 JSON backup model. Export/import moves trades, setups, reviews, screenshots and preferences between platforms; no automatic synchronization is performed.
 - The Windows interface follows the original Mac layout, palette, navigation and forms. Screenshot review includes pan, zoom, arrows, rectangles, text, liquidity markers, undo and category editing. Operating-system fonts and native file dialogs differ between platforms.
@@ -32,7 +34,7 @@ Requires Xcode with macOS SDK support. Open `macos/LiquidityEdge.xcodeproj`, or 
 
 ```bash
 cd macos
-bash Scripts/package-release.sh 1.0.0
+bash Scripts/package-release.sh 1.0.1
 ```
 
 Outputs are in `macos/release/`. Release builds preserve the original local app's unsandboxed Application Support location and bundle identifier.
@@ -60,4 +62,4 @@ See [TESTING.md](TESTING.md) for local verification and limitations.
 
 ## Veri guvenligi
 
-Orijinal uygulama `macos/` altindadir. Windows surumu `windows/` altindadir. Kurulum dosyalari Releases bolumundedir. Kurulum sirasinda kisisel islem kayitlari silinmez; surum degistirmeden once JSON yedegi alin. Bu depo demo verisi icerir, kisisel gunluk verisi icermez.
+Mac uygulamasi `macos/` altindadir. Windows surumu `windows/` altindadir. Yeni kurulum bos gunlukle baslar; kullanici kendi verisini girer ve veriler kendi bilgisayarinda saklanir. Kurulum sirasinda mevcut kisisel islem kayitlari silinmez; surum degistirmeden once JSON yedegi alin. Depodaki ornek veriler sadece istege bagli demo ve testler icindir, kisisel gunluk verisi icermez. Imzasiz onizleme paketleri guvenlik uyarisi verebilir; imzali dagitim icin gereken hesaplar SIGNING.md dosyasinda aciklanir.

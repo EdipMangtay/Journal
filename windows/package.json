@@ -1,7 +1,7 @@
 {
   "name": "liquidity-edge-windows",
   "productName": "Liquidity Edge",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Offline trading journal for Windows",
   "author": "Edip Mangtay",
   "private": true,
@@ -47,6 +47,7 @@
     "win": {
       "target": "nsis",
       "icon": "assets/icon.png",
+      "signExts": [".exe", ".dll", ".node"],
       "artifactName": "Liquidity-Edge-Windows-Setup.exe"
     },
     "nsis": {

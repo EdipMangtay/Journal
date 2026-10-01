@@ -1,5 +1,5 @@
 import { app, BrowserWindow, dialog, ipcMain, session, Menu } from 'electron';
-import { promises as fs } from 'node:fs';
+import { promises as fs, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { imagePipeline, loadImage, validateImages } from './images.mjs';
@@ -8,13 +8,22 @@ import { parseBackup, mergeBackup, exportCSV, importCSV } from '../shared/core.m
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 app.setName('Liquidity Edge');
-if (process.env.JOURNAL_TEST_DATA_DIR) app.setPath('userData', path.resolve(process.env.JOURNAL_TEST_DATA_DIR));
-else app.setPath('userData', path.join(app.getPath('appData'), 'Liquidity Edge'));
-if (!app.requestSingleInstanceLock()) app.quit();
+let startupError;
+try {
+  const directory = process.env.JOURNAL_TEST_DATA_DIR
+    ? path.resolve(process.env.JOURNAL_TEST_DATA_DIR)
+    : path.join(app.getPath('appData'), 'Liquidity Edge');
+  mkdirSync(directory, { recursive: true });
+  app.setPath('userData', directory);
+} catch (error) { startupError = error; }
+if (startupError) {
+  dialog.showErrorBox('Liquidity Edge could not start', `The journal folder could not be opened. Your existing files have not been changed.\n\n${startupError.message}`);
+  app.quit();
+} else if (!app.requestSingleInstanceLock()) app.quit();
 else {
   let window;
   app.on('second-instance', () => { if (window) { if (window.isMinimized()) window.restore(); window.focus(); } });
-  app.whenReady().then(() => {
+  app.whenReady().then(async () => {
     const storage = new JournalStorage(app.getPath('userData'));
     const index = path.join(root, '../dist/index.html');
     const allowedURL = pathToFileURL(index).href;
@@ -94,7 +103,7 @@ else {
       const pipeline = await imagePipeline(Buffer.from(data, 'base64'));
       return (await pipeline.png().toBuffer()).toString('base64');
     });
-    window.loadFile(index);
+    await window.loadFile(index);
   }).catch(error => { dialog.showErrorBox('Liquidity Edge could not start', error.message); app.quit(); });
   app.on('window-all-closed', () => app.quit());
 }

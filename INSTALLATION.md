@@ -1,6 +1,10 @@
 # Installation / Kurulum
 
-Download the installer from [GitHub Releases](https://github.com/EdipMangtay/Journal/releases/latest). Source ZIP downloads are for development, not installation.
+Download the installer from [GitHub Releases](https://github.com/EdipMangtay/Journal/releases). Source ZIP downloads are for development, not installation. Current preview builds are unsigned and may be blocked; do not treat them as trusted signed releases. [SIGNING.md](SIGNING.md) documents the remaining publisher requirements.
+
+## First launch and local data
+
+New installations open a blank journal. No sample trades, setups, reviews or screenshots are loaded automatically. Enter your own records; they persist locally across restarts. No account, server, cloud sync or internet connection is required. The optional Settings demo uses isolated data and does not seed your journal. An upgrade opens your existing records rather than clearing them.
 
 ## macOS 14 or newer
 

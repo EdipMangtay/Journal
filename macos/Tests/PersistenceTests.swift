@@ -4,6 +4,24 @@ import AppKit
 @testable import LiquidityEdge
 
 final class PersistenceTests: XCTestCase {
+    @MainActor func testFreshJournalStartsEmptyAndDemoDoesNotPopulateIt() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("Fresh.store")
+        let real = try JournalStore(demo: false, storageURL: url)
+        XCTAssertFalse(real.isDemo)
+        XCTAssertTrue(real.trades.isEmpty)
+        XCTAssertTrue(real.setups.isEmpty)
+        XCTAssertTrue(real.reviews.isEmpty)
+        XCTAssertEqual(try real.context.fetchCount(FetchDescriptor<TradeScreenshot>()), 0)
+        let demo = try JournalStore(demo: true)
+        XCTAssertEqual(demo.trades.count, 28)
+        let reopened = try JournalStore(demo: false, storageURL: url)
+        XCTAssertTrue(reopened.trades.isEmpty)
+        XCTAssertTrue(reopened.setups.isEmpty)
+        XCTAssertTrue(reopened.reviews.isEmpty)
+    }
     @MainActor func testCRUDReopenAttachmentsAndRestore() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)

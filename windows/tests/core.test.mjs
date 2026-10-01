@@ -96,6 +96,32 @@ test('concurrent writes are serialized without losing the final state', async ()
     assert.equal(net((await store.read()).trades[0]), 3);
   } finally { await fs.rm(directory, { recursive: true, force: true }); }
 });
+test('reads wait for pending validation and disk writes', async () => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'journal-read-after-write-'));
+  try {
+    const store = new JournalStorage(directory, async value => { await new Promise(resolve => setTimeout(resolve, 25)); return value; });
+    const journal = emptyJournal(); journal.preferences.timezone = 'Europe/Istanbul';
+    const writing = store.write(journal);
+    assert.equal(store.pendingWrites, 1);
+    const read = await store.read();
+    await writing;
+    assert.equal(read.preferences.timezone, 'Europe/Istanbul');
+    assert.equal(store.pendingWrites, 0);
+  } finally { await fs.rm(directory, { recursive: true, force: true }); }
+});
+test('failed asynchronous validation preserves disk state and releases the write queue', async () => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'journal-validation-'));
+  try {
+    const store = new JournalStorage(directory, async value => { if (value.preferences.timezone === 'Europe/Istanbul') throw new Error('Invalid attachment'); });
+    const original = emptyJournal(); await store.write(original);
+    const changed = structuredClone(original); changed.preferences.timezone = 'Europe/Istanbul';
+    await assert.rejects(store.write(changed), /Invalid attachment/);
+    assert.equal(store.pendingWrites, 0);
+    assert.equal((await store.read()).preferences.timezone, original.preferences.timezone);
+    original.preferences.currency = 'EUR'; await store.write(original);
+    assert.equal((await store.read()).preferences.currency, 'EUR');
+  } finally { await fs.rm(directory, { recursive: true, force: true }); }
+});
 test('real Swift-generated backup is accepted and analytics match Swift', async () => {
   const backup = parseBackup(JSON.parse(await fs.readFile(new URL('./fixtures/macos-backup.json', import.meta.url), 'utf8')));
   const expected = JSON.parse(await fs.readFile(new URL('./fixtures/macos-metrics.json', import.meta.url), 'utf8'));

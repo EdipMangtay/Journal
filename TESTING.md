@@ -26,6 +26,8 @@ On GitHub's Windows runner the same test targets the installed executable after 
 
 Core tests cover validation, analytics, CSV escaping and round trips, backup merging, cross-platform demo fixtures, time zones, write serialization, atomic persistence, corruption handling and backup preservation.
 
+A controlled-clock UI regression verifies a pending search update cannot reset a Settings form after navigation. Settings tests wait for the save confirmation and verify the on-disk value before relaunch. Storage tests cover reads during pending validation/writes and queue recovery after rejected validation.
+
 ## Compatibility
 
 `windows/tests/fixtures/macos-backup.json` contains only generated demo data exported by the original Swift app. `macos-metrics.json` contains the corresponding Swift calculations. `macos/Scripts/compatibility-fixture.swift` regenerates the files and can also decode and restore a Windows backup in a fresh SwiftData store.

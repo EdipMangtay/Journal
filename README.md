@@ -6,9 +6,9 @@ Offline trading journal for macOS and Windows. Trades, performance analytics, ca
 
 | Platform | Installer | Requirements |
 | --- | --- | --- |
-| Windows | [Download Setup.exe](https://github.com/EdipMangtay/Journal/releases/download/v1.0.1-preview.1/Liquidity-Edge-Windows-Setup.exe) | Windows 10/11, x64 |
-| MacBook / Mac | [Download PKG](https://github.com/EdipMangtay/Journal/releases/download/v1.0.1-preview.1/Liquidity-Edge-macOS-Universal.pkg) | macOS 14+, Apple Silicon or Intel |
-| Mac alternative | [Download DMG](https://github.com/EdipMangtay/Journal/releases/download/v1.0.1-preview.1/Liquidity-Edge-macOS-Universal.dmg) | Drag the app to Applications |
+| Windows | [Download Setup.exe](https://github.com/EdipMangtay/Journal/releases/download/v1.0.1-preview.2/Liquidity-Edge-Windows-Setup.exe) | Windows 10/11, x64 |
+| MacBook / Mac | [Download PKG](https://github.com/EdipMangtay/Journal/releases/download/v1.0.1-preview.2/Liquidity-Edge-macOS-Universal.pkg) | macOS 14+, Apple Silicon or Intel |
+| Mac alternative | [Download DMG](https://github.com/EdipMangtay/Journal/releases/download/v1.0.1-preview.2/Liquidity-Edge-macOS-Universal.dmg) | Drag the app to Applications |
 
 The installers include everything required to run the app. Developer tools and additional runtimes are not needed. Download from **Releases**, not the source-code ZIP.
 

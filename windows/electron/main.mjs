@@ -24,7 +24,13 @@ else {
   let window;
   app.on('second-instance', () => { if (window) { if (window.isMinimized()) window.restore(); window.focus(); } });
   app.whenReady().then(async () => {
-    const storage = new JournalStorage(app.getPath('userData'));
+    const storage = new JournalStorage(app.getPath('userData'), validateImages);
+    app.on('before-quit', event => {
+      if (storage.pendingWrites) {
+        event.preventDefault();
+        void storage.queue.then(() => app.quit());
+      }
+    });
     const index = path.join(root, '../dist/index.html');
     const allowedURL = pathToFileURL(index).href;
     window = new BrowserWindow({ width: 1440, height: 960, minWidth: 800, minHeight: 600, title: 'LIQUIDITY EDGE', backgroundColor: '#101215', icon: path.join(root, '../assets/icon.png'),
@@ -44,7 +50,7 @@ else {
     };
     handle('journal:load', () => storage.read());
     handle('journal:path', () => storage.file);
-    handle('journal:save', async value => storage.write(await validateImages(parseBackup(value))));
+    handle('journal:save', value => storage.write(value));
     handle('journal:export', async value => {
       const backup = value ? await validateImages(parseBackup(value)) : await storage.read();
       const { canceled, filePath } = await dialog.showSaveDialog(window, { defaultPath: `LiquidityEdge-${new Date().toISOString().slice(0, 10)}.json`, filters: [{ name: 'Journal backup', extensions: ['json'] }] });

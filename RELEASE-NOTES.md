@@ -14,6 +14,8 @@ Version 1.0.1 opens a blank local journal on both platforms. No sample trades, s
 
 Windows explicitly creates its journal folder before startup, reports startup failures, and is tested with no pre-existing data directory. Mac and Windows installer version numbers are kept in sync. Stable release publication now requires validated publisher signatures and Apple notarization; tags containing `-preview.` remain clearly marked unsigned prereleases.
 
+Preview 2 fixes a delayed search refresh that could reset an unsaved Settings form after navigation. Reads wait for earlier writes, image validation is part of the write queue, and application shutdown waits for pending saves.
+
 **First-run security notice:** these files do not have Apple Developer ID notarization or a Windows distribution certificate. macOS and Windows may ask for approval or block unsigned software under managed-device policies. This is separate from application functionality. Follow [INSTALLATION.md](https://github.com/EdipMangtay/Journal/blob/main/INSTALLATION.md); do not disable operating-system security protections globally. Back up existing journal data before upgrading.
 
 SHA-256 checksum files accompany the installers.

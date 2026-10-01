@@ -3,7 +3,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 
-test('complete offline journal, all screens, images, backup and persistence',async()=>{
+test('complete offline journal, all screens, images, backup and persistence',async({},testInfo)=>{
   test.setTimeout(180000);
   const temporary=await fs.mkdtemp(path.join(os.tmpdir(),'journal-ui-test-'));
   const directory=path.join(temporary,'new-user','Liquidity Edge');
@@ -21,6 +21,15 @@ test('complete offline journal, all screens, images, backup and persistence',asy
     const fresh=await page.evaluate(()=>window.journal.load());
     for(const field of ['trades','setups','reviews','screenshots'])expect(fresh[field]).toEqual([]);
     await nav('Trades');await expect(page.locator('[data-trade]')).toHaveCount(0);
+    await page.clock.install();
+    await page.evaluate(()=>{
+      const search=document.querySelector('#search');search.value='NQ';search.dispatchEvent(new Event('input',{bubbles:true}));
+      [...document.querySelectorAll('.nav button')].find(button=>button.textContent.trim()==='Settings').click();
+      const timezone=document.querySelector('[name=timezone]');timezone.value='Europe/Istanbul';timezone.dispatchEvent(new Event('input',{bubbles:true}));
+    });
+    await page.clock.runFor(300);
+    await expect(page.getByLabel('Time zone',{exact:true})).toHaveValue('Europe/Istanbul');
+    await page.clock.resume();
     await nav('Settings');await press('Open Demo');await nav('Dashboard');
     await expect(page.locator('.demo-banner')).toBeVisible();
     await page.screenshot({path:'test-results/desktop-dashboard.png',fullPage:true});
@@ -50,8 +59,8 @@ test('complete offline journal, all screens, images, backup and persistence',asy
     await nav('Trades');await expect(page.locator('.trade-rows')).toContainText('$245.00');await page.locator('[data-trade]').click();await expect(page.locator('#editor')).toContainText('Offline persistence <script>alert(1)</script>');await press('Edit trade');await page.getByLabel('Gross PnL USD',{exact:true}).fill('999');await press('Cancel');await expect(page.locator('.trade-rows')).toContainText('$245.00');
     await page.getByLabel('Search trades').fill('valid qt');await expect(page.locator('[data-trade]')).toHaveCount(1);await press('Reset');
     await nav('Review');await press('New review');await page.getByLabel('What worked?',{exact:true}).fill('Patient execution');await page.getByLabel('What is one adjustment for the next period?').fill('Patient execution');await expect(page.locator('#review-snapshot')).toContainText('$245.00');await press('Save review');await expect(page.getByText('Patient execution',{exact:true})).toBeVisible();
-    await nav('Settings');await page.getByLabel('Time zone',{exact:true}).fill('Europe/Istanbul');await press('Save preferences');await expect(page.getByLabel('Time zone',{exact:true})).toHaveValue('Europe/Istanbul');
-    const saved=await page.evaluate(()=>window.journal.load());expect(saved.trades).toHaveLength(1);expect(saved.trades[0].ssmt.markets).toEqual(['ES']);expect(saved.screenshots[0].screenshot.annotations).toHaveLength(1);expect(saved.trades[0].qt.valid).toBe(true);
+    await nav('Settings');await page.getByLabel('Time zone',{exact:true}).fill('Europe/Istanbul');await press('Save preferences');await expect(page.locator('#toast')).toHaveText('Preferences saved.');await expect(page.getByLabel('Time zone',{exact:true})).toHaveValue('Europe/Istanbul');
+    const saved=await page.evaluate(()=>window.journal.load());expect(saved.preferences.timezone).toBe('Europe/Istanbul');expect(saved.trades).toHaveLength(1);expect(saved.trades[0].ssmt.markets).toEqual(['ES']);expect(saved.screenshots[0].screenshot.annotations).toHaveLength(1);expect(saved.trades[0].qt.valid).toBe(true);
     const backup=path.join(directory,'export.json');await app.evaluate(({dialog},file)=>{dialog.showSaveDialog=async()=>({canceled:false,filePath:file});},backup);await press('Export JSON backup');await expect.poll(async()=>{try{return JSON.parse(await fs.readFile(backup,'utf8')).trades.length;}catch{return 0;}}).toBe(1);
     await fs.copyFile(backup,'test-results/windows-backup.json');
     await app.close();app=await launch();page=await app.firstWindow();watch();await nav('Trades');await expect(page.locator('[data-trade]')).toHaveCount(1);await expect(page.locator('.trade-rows')).toContainText('$245.00');
@@ -59,5 +68,6 @@ test('complete offline journal, all screens, images, backup and persistence',asy
     await page.locator('[data-trade]').click();await press('Delete');await page.locator('#confirm').getByRole('button',{name:'Delete',exact:true}).click();await expect(page.locator('[data-trade]')).toHaveCount(0);
     await app.evaluate(({dialog},file)=>{dialog.showOpenDialog=async()=>({canceled:false,filePaths:[file]});dialog.showMessageBox=async()=>({response:1});},backup);await nav('Settings');await press('Restore JSON backup');await nav('Trades');await expect(page.locator('[data-trade]')).toHaveCount(1);
     expect(errors).toEqual([]);
+  }catch(error){if(page&&!page.isClosed()){console.error('Application message:',await page.locator('#toast').textContent());await page.screenshot({path:testInfo.outputPath('failure.png')});}throw error;
   }finally{try{await app?.close();}finally{await fs.rm(temporary,{recursive:true,force:true});}}
 });

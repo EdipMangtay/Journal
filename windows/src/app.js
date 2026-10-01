@@ -18,6 +18,7 @@ function filtered(){
   return data.trades.filter(t=>{const day=dateKey(t.date,zone);return matchesSearch(t,f.search)&&(!f.instrument||t.instrument===f.instrument)&&(!f.session||t.session===f.session)&&(!f.compliance||compliant(t)===(f.compliance==='valid'))&&(!f.from||day>=f.from)&&(!f.to||day<=f.to)&&(!range||day>=range.from&&day<=range.to)&&Object.entries(state.facets).every(([key,value])=>!value||groups([t],key,zone).some(g=>g.name===value));});
 }
 function render(){
+  clearTimeout(notify.searchTimer);
   charts.forEach(c=>c.destroy());const p=data.preferences;
   document.documentElement.classList.toggle('light',p.theme==='Light'||p.theme==='System'&&matchMedia('(prefers-color-scheme: light)').matches);document.documentElement.classList.toggle('no-motion',!p.animations);
   const rows=filtered();$('#app').innerHTML=workspaceView(data,state,rows);decorate();charts=drawCharts(data,state,rows);

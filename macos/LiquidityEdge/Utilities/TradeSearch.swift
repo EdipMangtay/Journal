@@ -1,11 +1,17 @@
 import Foundation
 
 enum TradeSearch {
+    private static func normalize(_ value: String) -> String { value.lowercased().replacingOccurrences(of: "ı", with: "i").folding(options: .diacriticInsensitive, locale: L10n.locale) }
     static func matches(_ trade: TradeRecord, query: String) -> Bool {
-        let query = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let query = normalize(query.trimmingCharacters(in: .whitespacesAndNewlines))
         guard !query.isEmpty else { return true }
         var rest = query
         let special: [(String, Bool)] = [
+            ("kuralsiz kazanc", trade.classification == .invalidWinner), ("kuralsiz zarar", trade.classification == .invalidLoser),
+            ("kuralli kazanc", trade.classification == .validWinner), ("kuralli zarar", trade.classification == .validLoser),
+            ("yalniz crt", trade.hasCRT && !trade.hasSSMT && !trade.hasTSMO && !trade.hasQT && !trade.hasMMXM),
+            ("ssmt yok", !trade.hasSSMT), ("tsmo yok", !trade.hasTSMO), ("kuralli", trade.compliant), ("kuralsiz", !trade.compliant),
+            ("kazanc", trade.netPnL >= 0.005), ("zarar", trade.netPnL <= -0.005),
             ("invalid winner", trade.classification == .invalidWinner), ("invalid loser", trade.classification == .invalidLoser),
             ("valid winner", trade.classification == .validWinner), ("valid loser", trade.classification == .validLoser),
             ("crt only", trade.hasCRT && !trade.hasSSMT && !trade.hasTSMO && !trade.hasQT && !trade.hasMMXM),
@@ -21,8 +27,9 @@ enum TradeSearch {
                 var remaining = tokens; remaining.removeSubrange(start..<(start + phraseTokens.count)); rest = remaining.joined(separator: " ")
             }
         }
-        let aliases = trade.instrument.uppercased() == "XAUUSD" ? "gold xauusd" : trade.instrument
-        let haystack = ([trade.instrument, aliases, trade.direction, trade.session, trade.setupName, trade.grade, trade.qt.dailyQuarter, trade.qt.higherQuarter, trade.entryTimeframe, trade.drawOnLiquidity, trade.notes.thesis, trade.notes.lesson, trade.classification.rawValue] + trade.tags + trade.brokenRules + trade.confirmations + trade.emotional.emotions).joined(separator: " ").lowercased()
+        let aliases = trade.instrument.uppercased() == "XAUUSD" ? "gold altin xauusd" : trade.instrument
+        let localized = ([trade.direction, trade.session, trade.classification.rawValue] + trade.brokenRules + trade.confirmations + trade.emotional.emotions).map(L10n.text)
+        let haystack = normalize(([trade.instrument, aliases, trade.direction, trade.session, trade.setupName, trade.grade, trade.qt.dailyQuarter, trade.qt.higherQuarter, trade.entryTimeframe, trade.drawOnLiquidity, trade.notes.thesis, trade.notes.lesson, trade.classification.rawValue] + trade.tags + trade.brokenRules + trade.confirmations + trade.emotional.emotions + localized).joined(separator: " "))
         return rest.split(whereSeparator: { $0.isWhitespace }).allSatisfy { haystack.contains($0) }
     }
 }

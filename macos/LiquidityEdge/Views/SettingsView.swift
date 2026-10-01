@@ -21,39 +21,39 @@ struct SettingsView: View {
         ScrollView { VStack(alignment: .leading, spacing: 24) {
             PageHeader(eyebrow: "Workspace preferences", title: "Make it your journal.", subtitle: "Local storage, clear defaults and data you control.")
             Panel(title: "ACCOUNT & APPEARANCE") {
-                HStack { TextField("Default account size", value: $preferences.accountSize, format: .number); TextField("Default risk %", value: $preferences.defaultRiskPercent, format: .number); TextField("Currency", text: $preferences.currency).frame(width: 130) }.textFieldStyle(.roundedBorder)
-                HStack { Picker("Theme", selection: $preferences.theme) { ForEach(["Dark", "Light", "System"], id: \.self) { Text($0) } }; Toggle("Animations", isOn: $preferences.animations); Spacer() }
-                TextField("Trading time zone", text: $preferences.timezone).textFieldStyle(.roundedBorder)
-                Text("Use an IANA time zone, such as America/New_York or Europe/Istanbul. Calendar and hour analytics use this zone; timestamps are stored as absolute instants. Currency changes display units and does not convert values.").font(.caption).foregroundStyle(Palette.muted)
-                Button("Save preferences", action: savePreferences).buttonStyle(.borderedProminent)
+                HStack { TextField(L10n.text("Default account size"), value: $preferences.accountSize, format: .number); TextField(L10n.text("Default risk %"), value: $preferences.defaultRiskPercent, format: .number); TextField(L10n.text("Currency"), text: $preferences.currency).frame(width: 130) }.textFieldStyle(.roundedBorder)
+                HStack { Picker(L10n.text("Theme"), selection: $preferences.theme) { ForEach(["Dark", "Light", "System"], id: \.self) { Text(L10n.text($0)) } }; Toggle(L10n.text("Animations"), isOn: $preferences.animations); Spacer() }
+                TextField(L10n.text("Trading time zone"), text: $preferences.timezone).textFieldStyle(.roundedBorder)
+                Text(L10n.text("Use an IANA time zone, such as America/New_York or Europe/Istanbul. Calendar and hour analytics use this zone; timestamps are stored as absolute instants. Currency changes display units and does not convert values.")).font(.caption).foregroundStyle(Palette.muted)
+                Button(L10n.text("Save preferences"), action: savePreferences).buttonStyle(.borderedProminent)
             }
             Panel(title: "TRADING SESSIONS") {
                 ForEach(preferences.sessions, id: \.self) { session in
-                    HStack { Text(session).frame(width: 140, alignment: .leading); TextField("Session hours", text: Binding(get: { preferences.sessionHours[session] ?? "" }, set: { preferences.sessionHours[session] = $0 })).textFieldStyle(.roundedBorder); Button { preferences.sessions.removeAll { $0 == session }; preferences.sessionHours.removeValue(forKey: session) } label: { Image(systemName: "minus.circle") } }
+                    HStack { Text(L10n.text(session)).frame(width: 140, alignment: .leading); TextField(L10n.text("Session hours"), text: Binding(get: { preferences.sessionHours[session] ?? "" }, set: { preferences.sessionHours[session] = $0 })).textFieldStyle(.roundedBorder); Button { preferences.sessions.removeAll { $0 == session }; preferences.sessionHours.removeValue(forKey: session) } label: { Image(systemName: "minus.circle") } }
                 }
-                HStack { TextField("Custom session", text: $customSession).textFieldStyle(.roundedBorder); Button("Add session") { let name = customSession.trimmingCharacters(in: .whitespaces); if !name.isEmpty && !preferences.sessions.contains(name) { preferences.sessions.append(name); preferences.sessionHours[name] = ""; customSession = "" } } }
-                Text("Session hours are your reference schedule. Choose the session explicitly on each trade. Save preferences to apply changes.").font(.caption).foregroundStyle(Palette.muted)
+                HStack { TextField(L10n.text("Custom session"), text: $customSession).textFieldStyle(.roundedBorder); Button(L10n.text("Add session")) { let name = customSession.trimmingCharacters(in: .whitespaces); if !name.isEmpty && !preferences.sessions.contains(name) { preferences.sessions.append(name); preferences.sessionHours[name] = ""; customSession = "" } } }
+                Text(L10n.text("Session hours are your reference schedule. Choose the session explicitly on each trade. Save preferences to apply changes.")).font(.caption).foregroundStyle(Palette.muted)
             }
             Panel(title: "ALLOWED INSTRUMENTS") {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 150))], alignment: .leading) {
                     ForEach(store.instruments, id: \.id) { instrument in Toggle(instrument.symbol, isOn: Binding(get: { instrument.enabled }, set: { value in do { try store.commit { instrument.enabled = value } } catch { store.report(error) } })) }
                 }
-                HStack { TextField("Custom symbol", text: $customInstrument).textFieldStyle(.roundedBorder); Button("Add instrument", action: addInstrument) }
+                HStack { TextField(L10n.text("Custom symbol"), text: $customInstrument).textFieldStyle(.roundedBorder); Button(L10n.text("Add instrument"), action: addInstrument) }
             }
             Panel(title: "CUSTOM RULES") {
                 ForEach(store.customRules, id: \.id) { rule in HStack { Text(rule.name); Spacer(); Button { do { try store.commit { store.context.delete(rule) } } catch { store.report(error) } } label: { Image(systemName: "trash") } } }
-                HStack { TextField("Rule name", text: $customRule).textFieldStyle(.roundedBorder); Button("Add rule", action: addRule) }
-                Text("Custom setups and their rule definitions are managed in Playbook.").font(.caption).foregroundStyle(Palette.muted)
+                HStack { TextField(L10n.text("Rule name"), text: $customRule).textFieldStyle(.roundedBorder); Button(L10n.text("Add rule"), action: addRule) }
+                Text(L10n.text("Custom setups and their rule definitions are managed in Playbook.")).font(.caption).foregroundStyle(Palette.muted)
             }
             Panel(title: "DATA & BACKUP", subtitle: "NO CLOUD · NO ACCOUNT REQUIRED") {
-                Text("A JSON backup includes every trade, screenshot, annotation, playbook, review, instrument, custom rule and saved preference.").font(.callout)
-                HStack { Button("Export CSV") { export(csv: true) }; Button("Export JSON / Create backup") { export(csv: false) }; Button("Import CSV…") { csvImport = true; importing = true }; Button("Restore backup…") { csvImport = false; importing = true } }
-                Text("Restore merges by trade ID and replaces matching records. Other trades remain. Review the import count before applying. CSV preserves all trade fields in record_json; screenshots and playbooks require JSON backup.").font(.caption).foregroundStyle(Palette.muted)
-                Text("Store: " + ((try? JournalStore.defaultStoreURL().path) ?? "Application Support/LiquidityEdge")).font(.caption.monospaced()).foregroundStyle(Palette.muted).textSelection(.enabled)
-                if store.isDemo { Badge(text: "DEMO EXPORT CONTAINS SAMPLE DATA", color: Palette.amber) } else { Button("Explore isolated demo", action: openDemo) }
+                Text(L10n.text("A JSON backup includes every trade, screenshot, annotation, playbook, review, instrument, custom rule and saved preference.")).font(.callout)
+                HStack { Button(L10n.text("Export CSV")) { export(csv: true) }; Button(L10n.text("Export JSON / Create backup")) { export(csv: false) }; Button(L10n.text("Import CSV…")) { csvImport = true; importing = true }; Button(L10n.text("Restore backup…")) { csvImport = false; importing = true } }
+                Text(L10n.text("Restore merges by trade ID and replaces matching records. Other trades remain. Review the import count before applying. CSV preserves all trade fields in record_json; screenshots and playbooks require JSON backup.")).font(.caption).foregroundStyle(Palette.muted)
+                Text(L10n.text("Store: " + ((try? JournalStore.defaultStoreURL().path) ?? "Application Support/LiquidityEdge"))).font(.caption.monospaced()).foregroundStyle(Palette.muted).textSelection(.enabled)
+                if store.isDemo { Badge(text: "DEMO EXPORT CONTAINS SAMPLE DATA", color: Palette.amber) } else { Button(L10n.text("Explore isolated demo"), action: openDemo) }
             }
-            if let message { Label(message, systemImage: "info.circle").font(.callout).foregroundStyle(Palette.mint).textSelection(.enabled) }
-            Panel(title: "LIQUIDITY EDGE / 1.0") { Text("Professional Trading Performance Journal\nBuilt around discipline, pattern recognition and execution quality.").font(.callout).foregroundStyle(Palette.muted) }
+            if let message { Label(L10n.text(message), systemImage: "info.circle").font(.callout).foregroundStyle(Palette.mint).textSelection(.enabled) }
+            Panel(title: "LIQUIDITY EDGE / 1.0") { Text(L10n.text("Professional Trading Performance Journal\nBuilt around discipline, pattern recognition and execution quality.")).font(.callout).foregroundStyle(Palette.muted) }
         }.pagePadding() }
         .onAppear { if !loaded { preferences = store.preferences; loaded = true } }
         .fileImporter(isPresented: $importing, allowedContentTypes: csvImport ? [.commaSeparatedText, .plainText] : [.json], allowsMultipleSelection: false) { result in
@@ -68,13 +68,13 @@ struct SettingsView: View {
                 confirmingImport = true
             } catch { store.report(error) }
         }
-        .confirmationDialog("Import \(previewCount) trades into \(store.isDemo ? "the demo workspace" : "your journal")?", isPresented: $confirmingImport) {
-            Button("Import and merge") {
+        .confirmationDialog(L10n.text("Import \(previewCount) trades into \(store.isDemo ? "the demo workspace" : "your journal")?"), isPresented: $confirmingImport) {
+            Button(L10n.text("Import and merge")) {
                 do { if let backup = pendingBackup { try BackupService.restore(backup, into: store); preferences = store.preferences } else if let csv = pendingCSV { _ = try BackupService.importCSV(csv, into: store) }; message = "Imported \(previewCount) trades successfully." } catch { store.report(error) }
                 pendingBackup = nil; pendingCSV = nil
             }
-            Button("Cancel", role: .cancel) { pendingBackup = nil; pendingCSV = nil }
-        } message: { Text("Matching IDs will be updated. Other trades remain. JSON restore also merges playbooks and reviews and applies saved preferences. Keep a current backup before updating existing records.") }
+            Button(L10n.text("Cancel"), role: .cancel) { pendingBackup = nil; pendingCSV = nil }
+        } message: { Text(L10n.text("Matching IDs will be updated. Other trades remain. JSON restore also merges playbooks and reviews and applies saved preferences. Keep a current backup before updating existing records.")) }
     }
     private func savePreferences() {
         let original = store.preferences

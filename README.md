@@ -1,65 +1,50 @@
-# LIQUIDITY EDGE / Journal
+# LIQUIDITY EDGE / Trading Journal
 
-Offline trading journal for macOS and Windows. Trades, performance analytics, calendar, playbooks, reviews, screenshots, and portable JSON backups.
+macOS ve Windows için profesyonel çevrimdışı (offline) işlem günlüğü. İşlemler, performans analitiği, seans takvimi, strateji rehberi (playbook), canlı periyot değerlendirmeleri, görsel grafik notları ve taşınabilir JSON yedekleme.
 
-## Preview Downloads (Unsigned)
+## Kurulum Dosyaları (İndir)
 
-| Platform | Installer | Requirements |
+| Platform | Kurulum Paketi | Gereksinimler |
 | --- | --- | --- |
-| Windows | [Download Setup.exe](https://github.com/EdipMangtay/Journal/releases/download/v1.0.1-preview.2/Liquidity-Edge-Windows-Setup.exe) | Windows 10/11, x64 |
-| MacBook / Mac | [Download PKG](https://github.com/EdipMangtay/Journal/releases/download/v1.0.1-preview.2/Liquidity-Edge-macOS-Universal.pkg) | macOS 14+, Apple Silicon or Intel |
-| Mac alternative | [Download DMG](https://github.com/EdipMangtay/Journal/releases/download/v1.0.1-preview.2/Liquidity-Edge-macOS-Universal.dmg) | Drag the app to Applications |
+| Windows | [Setup.exe İndir](https://github.com/EdipMangtay/Journal/releases/download/v1.1.0-preview.1/Liquidity-Edge-Windows-Setup.exe) | Windows 10 / 11, 64-bit |
+| macOS (PKG) | [PKG Kurulum Dosyası İndir](https://github.com/EdipMangtay/Journal/releases/download/v1.1.0-preview.1/Liquidity-Edge-macOS-Universal.pkg) | macOS 14+, Apple Silicon veya Intel |
+| macOS (DMG) | [DMG İndir](https://github.com/EdipMangtay/Journal/releases/download/v1.1.0-preview.1/Liquidity-Edge-macOS-Universal.dmg) | Uygulamalar klasörüne sürükleyin |
 
-The installers include everything required to run the app. Developer tools and additional runtimes are not needed. Download from **Releases**, not the source-code ZIP.
+Kurulum paketleri uygulamanın çalışması için gereken tüm bileşenleri içerir. Ek bir geliştirici aracı veya çalışma ortamı kurmanıza gerek yoktur. Dosyaları kaynak kodu ZIP'inden değil, **Releases** bölümünden indiriniz.
 
-**These preview files do not have trusted distribution signatures.** They may be blocked by macOS Gatekeeper or Windows SmartScreen. They are not a warning-free public release. Stable releases are now blocked unless Windows Authenticode signatures and Apple notarization pass verification. See [signing prerequisites](SIGNING.md). Signing establishes publisher identity; Windows can still show reputation warnings for newly released files.
+**Güvenlik bildirimi:** Önizleme paketleri açık kaynak olarak derlenmiş olup kurumsal sertifika imzası içermediğinden ilk açılışta macOS Gatekeeper veya Windows SmartScreen onay ekranı gösterebilir. Detaylar için [SIGNING.md](SIGNING.md) ve [INSTALLATION.md](INSTALLATION.md) kılavuzuna bakınız.
 
-New installations open an empty journal: no trades, setups, reviews or screenshots are preloaded. Users enter their own data, which is saved on their own computer and restored on the next launch. Sample data is available only after explicitly selecting the isolated demo in Settings; it is never written into the real journal. Existing journals are preserved during upgrades.
+Yeni kurulumlar tertemiz, boş bir günlükle açılır; hiçbir demo işlem veya görsel otomatik yüklenmez. Kullanıcı kendi işlemlerini girer ve tüm veriler yerel olarak kullanıcının kendi bilgisayarında depolanır.
 
 ![macOS dashboard](docs/images/macos-dashboard.png)
 
-## Platforms
+## Platformlar ve Özellikler
 
-- `macos/`: the native SwiftUI / SwiftData / Swift Charts application, preserving the original UI. The distribution copy starts with an empty local journal instead of automatically opening the demo.
-- `windows/`: an Electron desktop implementation with its own offline storage and a self-contained, per-user NSIS installer. It is not a Swift binary renamed to `.exe`.
-- Both implementations use the same version-1 JSON backup model. Export/import moves trades, setups, reviews, screenshots and preferences between platforms; no automatic synchronization is performed.
-- The Windows interface follows the original Mac layout, palette, navigation and forms. Screenshot review includes pan, zoom, arrows, rectangles, text, liquidity markers, undo and category editing. Operating-system fonts and native file dialogs differ between platforms.
-- No accounts, telemetry, external services or network connection are required during normal use. All journal data remains on the local computer.
+- `macos/`: Orijinal tasarımı ve performansı koruyan yerel SwiftUI / SwiftData / Swift Charts uygulaması.
+- `windows/`: Özgün Mac tasarımını, renk paletini, oranlarını ve işlevlerini birebir sunan Electron masaüstü uygulaması.
+- **Tam Türkçe:** Arayüz, finansal metrikler, model kuralları, filtreler ve hata bildirimleri eksiksiz Türkçe olarak hazırlanmıştır.
+- **Görsel Not Düzenleyici:** Grafik ekran görüntüleri üzerinde yakınlaştırma (zoom), kaydırma (pan), ok çizimi, dikdörtgen alanı, metin ve likidite seviyesi etiketleme imkanı sunar.
+- **Gizlilik ve Güvenlik:** Tamamen yerel ve çevrimdışıdır. İnternet bağlantısı, hesap kaydı ya da veri toplama/telemetri yoktur.
+- **Taşınabilirlik:** Sürüm 1 uyumlu JSON yedekleme ile verilerinizi Mac ve Windows arasında istediğiniz zaman kayıpsız aktarabilirsiniz.
 
-## Development
+## Geliştirme ve Testler
 
 ### macOS
-
-Requires Xcode with macOS SDK support. Open `macos/LiquidityEdge.xcodeproj`, or build the installers:
-
 ```bash
 cd macos
-bash Scripts/package-release.sh 1.0.1
+bash Scripts/test-local.sh
+bash Scripts/package-release.sh 1.1.0
 ```
 
-Outputs are in `macos/release/`. Release builds preserve the original local app's unsandboxed Application Support location and bundle identifier.
-
-For trusted distribution, provide `MACOS_APP_IDENTITY`, `MACOS_INSTALLER_IDENTITY` and `MACOS_NOTARY_PROFILE` using certificates and a notarytool profile already configured on the build Mac. Do not commit certificates or credentials.
-
 ### Windows
-
-Requires Node.js 24+ for development only. Build on Windows:
-
 ```powershell
 cd windows
 npm ci
 npm test
+npm run test:e2e
 npm run dist:win
 ```
 
-The resulting installer is `windows/release/Liquidity-Edge-Windows-Setup.exe`. For local desktop development, run `npm run build` followed by `npm start`.
+## Doğrulama
 
-## Verification
-
-GitHub Actions builds both platforms, runs native and JavaScript tests, installs the Windows `.exe`, and tests the installed application with Playwright. The shared compatibility fixture is generated by the original Swift implementation using demo data. It verifies backup compatibility and matching analytics, including net-of-fees results, drawdown, missing R values and rule compliance.
-
-See [TESTING.md](TESTING.md) for local verification and limitations.
-
-## Veri guvenligi
-
-Mac uygulamasi `macos/` altindadir. Windows surumu `windows/` altindadir. Yeni kurulum bos gunlukle baslar; kullanici kendi verisini girer ve veriler kendi bilgisayarinda saklanir. Kurulum sirasinda mevcut kisisel islem kayitlari silinmez; surum degistirmeden once JSON yedegi alin. Depodaki ornek veriler sadece istege bagli demo ve testler icindir, kisisel gunluk verisi icermez. Imzasiz onizleme paketleri guvenlik uyarisi verebilir; imzali dagitim icin gereken hesaplar SIGNING.md dosyasinda aciklanir.
+GitHub Actions iş akışı her iki platformu otomatik olarak derler, tüm yerel SwiftData ve JavaScript testlerini icra eder, Windows EXE ve macOS PKG/DMG paketlerinin kurulum ve ilk açılış testlerini başarıyla tamamlar.

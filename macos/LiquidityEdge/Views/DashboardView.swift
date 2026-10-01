@@ -19,11 +19,11 @@ struct DashboardView: View {
                 HStack(alignment: .bottom) {
                     PageHeader(eyebrow: "Performance overview", title: "Process is the edge.", subtitle: "Professional Trading Performance Journal")
                     Spacer()
-                    SegmentedTabs(options: ["TODAY", "THIS WEEK", "THIS MONTH", "ALL TIME"], selection: $period, title: { $0 }).accessibilityLabel("Dashboard period")
+                    SegmentedTabs(options: ["TODAY", "THIS WEEK", "THIS MONTH", "ALL TIME"], selection: $period, title: { $0 }).accessibilityLabel(L10n.text("Dashboard period"))
                 }
                 HStack(spacing: 14) {
                     Image(systemName: "checkmark.shield").font(.system(size: 23, weight: .light)).foregroundStyle(Palette.mint)
-                    VStack(alignment: .leading, spacing: 5) { Text("Discipline before dollars.").font(.system(size: 13, weight: .medium)); Text(data.isEmpty ? "Your process is measured independently of your PnL." : "\(data.filter(\.compliant).count) of \(data.count) trades respected your plan. Review the exceptions.").font(.caption).foregroundStyle(Palette.muted) }
+                    VStack(alignment: .leading, spacing: 5) { Text(L10n.text("Discipline before dollars.")).font(.system(size: 13, weight: .medium)); Text(L10n.text(data.isEmpty ? "Your process is measured independently of your PnL." : "\(data.filter(\.compliant).count) of \(data.count) trades respected your plan. Review the exceptions.")).font(.caption).foregroundStyle(Palette.muted) }
                     Spacer(); Badge(text: "\(Format.percent(p.compliance)) COMPLIANCE", color: p.compliance >= 80 ? Palette.mint : Palette.amber)
                 }.padding(18).background(Palette.mint.opacity(0.035), in: RoundedRectangle(cornerRadius: 10)).overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Palette.mint.opacity(0.13)))
                 if data.isEmpty { EmptyJournal(action: newTrade) }
@@ -35,19 +35,19 @@ struct DashboardView: View {
                         MetricCard(title: "Expectancy", value: Format.r(p.averageR), footnote: "Expected R per recorded trade", color: Palette.outcome(p.averageR ?? 0))
                     }
                     Panel(title: "EQUITY CURVE", subtitle: "CLOSED TRADES · NET OF FEES") {
-                        HStack(alignment: .firstTextBaseline) { Text(curveMode == .r ? Format.r(p.totalR) : curveMode == .percent ? Format.percent(p.netPnL / store.preferences.accountSize * 100) : Format.money(p.netPnL, currency: store.preferences.currency)).font(.system(size: 29, weight: .medium, design: .rounded)).monospacedDigit(); Spacer(); SegmentedTabs(options: [CurveMode.dollars, .r, .percent], selection: $curveMode, title: { $0.rawValue }).accessibilityLabel("Equity curve unit") }
+                        HStack(alignment: .firstTextBaseline) { Text(curveMode == .r ? Format.r(p.totalR) : curveMode == .percent ? Format.percent(p.netPnL / store.preferences.accountSize * 100) : Format.money(p.netPnL, currency: store.preferences.currency)).font(.system(size: 29, weight: .medium, design: .rounded)).monospacedDigit(); Spacer(); SegmentedTabs(options: [CurveMode.dollars, .r, .percent], selection: $curveMode, title: { $0.rawValue }).accessibilityLabel(L10n.text("Equity curve unit")) }
                         EquityChart(points: curve, mode: curveMode, accountSize: store.preferences.accountSize)
-                        HStack { Label("Starting balance \(Format.money(store.preferences.accountSize, currency: store.preferences.currency))", systemImage: "circle.dotted"); Spacer(); Text("\(p.count) observations") }.font(.system(size: 10, design: .monospaced)).foregroundStyle(Palette.muted)
+                        HStack { Label(L10n.text("Starting balance \(Format.money(store.preferences.accountSize, currency: store.preferences.currency))"), systemImage: "circle.dotted"); Spacer(); Text(L10n.text("\(p.count) observations")) }.font(.system(size: 10, design: .monospaced)).foregroundStyle(Palette.muted)
                     }
                     HStack(alignment: .top, spacing: 16) {
                         Panel(title: "EXECUTION QUALITY") {
-                            HStack { Text(Format.number(p.executionScore, digits: 0)).font(.system(size: 42, weight: .light, design: .rounded)); Text("/ 100").foregroundStyle(Palette.muted); Spacer(); Image(systemName: "scope").font(.largeTitle).foregroundStyle(Palette.mint.opacity(0.6)) }
+                            HStack { Text(Format.number(p.executionScore, digits: 0)).font(.system(size: 42, weight: .light, design: .rounded)); Text(L10n.text("/ 100")).foregroundStyle(Palette.muted); Spacer(); Image(systemName: "scope").font(.largeTitle).foregroundStyle(Palette.mint.opacity(0.6)) }
                             ProgressView(value: p.executionScore, total: 100).tint(Palette.mint)
-                            HStack { Text("A+ setup win rate"); Spacer(); Text(p.aPlusWinRate.map(Format.percent) ?? "—").monospacedDigit() }.font(.caption)
+                            HStack { Text(L10n.text("A+ setup win rate")); Spacer(); Text(p.aPlusWinRate.map(Format.percent) ?? "—").monospacedDigit() }.font(.caption)
                         }.frame(maxWidth: 340)
                         Panel(title: "PROCESS / OUTCOME") {
                             ForEach([Classification.validWinner, .validLoser, .invalidWinner, .invalidLoser], id: \.self) { type in
-                                HStack { Circle().fill(Palette.classification(type)).frame(width: 6, height: 6); Text(type.rawValue).font(.system(size: 10, design: .monospaced)); Spacer(); Text(data.filter { $0.classification == type }.count.description).monospacedDigit() }
+                                HStack { Circle().fill(Palette.classification(type)).frame(width: 6, height: 6); Text(L10n.text(type.rawValue)).font(.system(size: 10, design: .monospaced)); Spacer(); Text(data.filter { $0.classification == type }.count.description).monospacedDigit() }
                             }
                         }
                     }

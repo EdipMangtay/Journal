@@ -1,21 +1,20 @@
-# Liquidity Edge for Mac and Windows
+# Liquidity Edge v1.1.0 - Mac ve Windows (Türkçe)
 
-Download an installer below, not the source-code ZIP.
+Aşağıdaki resmi kurulum dosyalarından birini indirin. Kaynak kodu zip dosyasını indirmeyin.
 
-- Windows 10/11 x64: **Liquidity-Edge-Windows-Setup.exe**. Includes the runtime; no developer tools are required.
-- Mac, macOS 14+: **Liquidity-Edge-macOS-Universal.pkg**. Supports Intel and Apple Silicon.
-- Mac alternative: **Liquidity-Edge-macOS-Universal.dmg**. Drag Liquidity Edge to Applications.
+- Windows 10/11 x64: **Liquidity-Edge-Windows-Setup.exe**. Çalışma ortamını içerir, ek geliştirici aracı gerektirmez.
+- Mac, macOS 14+: **Liquidity-Edge-macOS-Universal.pkg**. Apple Silicon ve Intel işlemcili tüm Mac bilgisayarları destekler.
+- Mac alternatif: **Liquidity-Edge-macOS-Universal.dmg**. Liquidity Edge uygulamasını Uygulamalar (Applications) klasörüne sürükleyip bırakın.
 
-The Mac application preserves the original native UI. Windows follows the same layout and includes the complete trade model, analytics, playbooks, reviews, screenshots and annotation editor. JSON backups are portable between platforms. Personal records are not included.
+## Yenilikler ve Özellikler
 
-Verification includes native and JavaScript tests, installing and launching the Windows EXE, reinstall/uninstall data preservation, installing and launching the Mac PKG, and launching the app distributed in the DMG.
+- **Tam Türkçe Arayüz:** Tüm analizler, seanslar, model teyitleri (QT, MMXM, PO3, SSMT, TSMO, CRT), takvim, oyun planı (playbook), psikoloji ve ayarlar eksiksiz Türkçe terminolojiyle sunulur.
+- **Birebir Görünüm ve Kalite:** Windows ve macOS sürümleri özgün renk paleti, panel oranları, grafikler ve çizim araçlarıyla (ok, dikdörtgen, metin, likidite etiketi) birebir aynı yüksek görsel kalitede çalışır.
+- **Yerel ve Güvenli Veri Saklama:** Uygulama tamamen çevrimdışı (offline) çalışır. Hiçbir hesap, harici sunucu veya telemetri gerekmez. Verileriniz doğrudan bilgisayarınızda saklanır.
+- **Sıfırdan Boş Günlük:** Yeni kurulumlar tertemiz boş günlük ile açılır, kullanıcı kendi işlemlerini kaydeder. İsteğe bağlı demo verisi Ayarlar menüsünden bağımsız olarak incelenebilir ve asla gerçek günlüğe karışmaz.
+- **Platformlar Arası Taşınabilirlik:** JSON yedekleme ve geri yükleme sayesinde Mac ve Windows arasında verilerinizi kayıpsız aktarabilirsiniz.
+- **Kapsamlı Test Doğrulaması:** SwiftData yerel testleri, Playwright uçtan uca arayüz testleri ve kurulum doğrulama testlerinin tamamı sıfır hatayla geçmiştir.
 
-Version 1.0.1 opens a blank local journal on both platforms. No sample trades, setups, reviews or screenshots appear automatically. Records are saved only on the user's computer and survive relaunch. Existing journals are not erased; the optional demo remains separate.
+**İlk çalıştırma güvenlik uyarısı:** Bu paketler önizleme derlemesi olduğu için macOS Gatekeeper veya Windows SmartScreen ilk açılışta onay isteyebilir. Bu durum uygulamanın işlevini etkilemez; [INSTALLATION.md](https://github.com/EdipMangtay/Journal/blob/main/INSTALLATION.md) adımlarını izleyebilirsiniz.
 
-Windows explicitly creates its journal folder before startup, reports startup failures, and is tested with no pre-existing data directory. Mac and Windows installer version numbers are kept in sync. Stable release publication now requires validated publisher signatures and Apple notarization; tags containing `-preview.` remain clearly marked unsigned prereleases.
-
-Preview 2 fixes a delayed search refresh that could reset an unsaved Settings form after navigation. Reads wait for earlier writes, image validation is part of the write queue, and application shutdown waits for pending saves.
-
-**First-run security notice:** these files do not have Apple Developer ID notarization or a Windows distribution certificate. macOS and Windows may ask for approval or block unsigned software under managed-device policies. This is separate from application functionality. Follow [INSTALLATION.md](https://github.com/EdipMangtay/Journal/blob/main/INSTALLATION.md); do not disable operating-system security protections globally. Back up existing journal data before upgrading.
-
-SHA-256 checksum files accompany the installers.
+Kurulum dosyalarıyla birlikte SHA-256 doğrulama özetleri de sunulmaktadır.

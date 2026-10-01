@@ -1,3 +1,4 @@
+import { t as tr } from '../shared/i18n.mjs';
 import { app, BrowserWindow, dialog, ipcMain, session, Menu } from 'electron';
 import { promises as fs, mkdirSync } from 'node:fs';
 import path from 'node:path';
@@ -17,7 +18,7 @@ try {
   app.setPath('userData', directory);
 } catch (error) { startupError = error; }
 if (startupError) {
-  dialog.showErrorBox('Liquidity Edge could not start', `The journal folder could not be opened. Your existing files have not been changed.\n\n${startupError.message}`);
+  dialog.showErrorBox(tr("Liquidity Edge could not start"), `The journal folder could not be opened. Your existing files have not been changed.\n\n${startupError.message}`);
   app.quit();
 } else if (!app.requestSingleInstanceLock()) app.quit();
 else {
@@ -45,7 +46,7 @@ else {
       return action(...args);
     });
     const readLimited = async filename => {
-      if ((await fs.stat(filename)).size > 512000000) throw new Error('File exceeds the 512 MB import limit.');
+      if ((await fs.stat(filename)).size > 512000000) throw new Error(tr("File exceeds the 512 MB import limit."));
       return fs.readFile(filename, 'utf8');
     };
     handle('journal:load', () => storage.read());
@@ -53,21 +54,21 @@ else {
     handle('journal:save', value => storage.write(value));
     handle('journal:export', async value => {
       const backup = value ? await validateImages(parseBackup(value)) : await storage.read();
-      const { canceled, filePath } = await dialog.showSaveDialog(window, { defaultPath: `LiquidityEdge-${new Date().toISOString().slice(0, 10)}.json`, filters: [{ name: 'Journal backup', extensions: ['json'] }] });
+      const { canceled, filePath } = await dialog.showSaveDialog(window, { defaultPath: `LiquidityEdge-${new Date().toISOString().slice(0, 10)}.json`, filters: [{ name: tr("Journal backup"), extensions: ['json'] }] });
       if (canceled) return false;
       await fs.writeFile(filePath, JSON.stringify({ ...backup, createdAt: Date.now() }, null, 2)); return true;
     });
     handle('journal:import', async (value, demo = false) => {
-      const { canceled, filePaths } = await dialog.showOpenDialog(window, { properties: ['openFile'], filters: [{ name: 'Journal backup', extensions: ['json'] }] });
+      const { canceled, filePaths } = await dialog.showOpenDialog(window, { properties: ['openFile'], filters: [{ name: tr("Journal backup"), extensions: ['json'] }] });
       if (canceled) return null;
       const incoming = await validateImages(parseBackup(JSON.parse(await readLimited(filePaths[0]))));
-      const { response } = await dialog.showMessageBox(window, { type: 'question', title: 'Import backup', message: `Merge ${incoming.trades.length} trades, ${incoming.setups.length} setups and ${incoming.reviews.length} reviews?`, detail: 'Matching IDs will be replaced. Unrelated records remain. Imported preferences will be applied.', buttons: ['Cancel', 'Import'], defaultId: 0, cancelId: 0 });
+      const { response } = await dialog.showMessageBox(window, { type: 'question', title: tr("Import backup"), message: tr(`Merge ${incoming.trades.length} trades, ${incoming.setups.length} setups and ${incoming.reviews.length} reviews?`), detail: tr("Matching IDs will be replaced. Unrelated records remain. Imported preferences will be applied."), buttons: [tr("Cancel"), tr("Import")], defaultId: 0, cancelId: 0 });
       if (response !== 1) return null;
       if (demo) return mergeBackup(parseBackup(value), incoming);
       let current;
       try { current = await storage.read(); }
       catch {
-        const result = await dialog.showMessageBox(window, { type: 'warning', message: 'The current journal is unreadable. Restore this validated backup?', detail: 'The unreadable original will be preserved in journal.json.bak.', buttons: ['Cancel', 'Restore'], defaultId: 0, cancelId: 0 });
+        const result = await dialog.showMessageBox(window, { type: 'warning', message: tr("The current journal is unreadable. Restore this validated backup?"), detail: tr("The unreadable original will be preserved in journal.json.bak."), buttons: [tr("Cancel"), tr("Restore")], defaultId: 0, cancelId: 0 });
         if (result.response !== 1) return null;
         return storage.write(incoming);
       }
@@ -83,33 +84,33 @@ else {
       const { canceled, filePaths } = await dialog.showOpenDialog(window, { properties: ['openFile'], filters: [{ name: 'CSV', extensions: ['csv'] }] });
       if (canceled) return null;
       const current = demo ? parseBackup(value) : await storage.read(), records = importCSV(await readLimited(filePaths[0]), current.setups);
-      const result = await dialog.showMessageBox(window, { type: 'question', message: `Import ${records.length} trades?`, buttons: ['Cancel', 'Import'], defaultId: 0, cancelId: 0 });
+      const result = await dialog.showMessageBox(window, { type: 'question', message: tr(`Import ${records.length} trades?`), buttons: [tr("Cancel"), tr("Import")], defaultId: 0, cancelId: 0 });
       if (result.response !== 1) return null;
       const byID = new Map(current.trades.map(t => [t.id.toLowerCase(), t])); records.forEach(t => byID.set(t.id.toLowerCase(), t));
       const merged = parseBackup({ ...current, trades: [...byID.values()] });
       return demo ? merged : storage.write(merged);
     });
     handle('journal:images', async () => {
-      const { canceled, filePaths } = await dialog.showOpenDialog(window, { properties: ['openFile', 'multiSelections'], filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'heic', 'heif', 'tif', 'tiff', 'webp'] }] });
+      const { canceled, filePaths } = await dialog.showOpenDialog(window, { properties: ['openFile', 'multiSelections'], filters: [{ name: tr("Images"), extensions: ['png', 'jpg', 'jpeg', 'heic', 'heif', 'tif', 'tiff', 'webp'] }] });
       if (canceled) return [];
-      if (filePaths.length > 20) throw new Error('Choose at most 20 images at a time.');
+      if (filePaths.length > 20) throw new Error(tr("Choose at most 20 images at a time."));
       return Promise.all(filePaths.map(async filename => {
-        if ((await fs.stat(filename)).size > 30000000) throw new Error('Images must be smaller than 30 MB.');
+        if ((await fs.stat(filename)).size > 30000000) throw new Error(tr("Images must be smaller than 30 MB."));
         return loadImage(filename, await fs.readFile(filename));
       }));
     });
     handle('journal:drop-images', async files => {
-      if (!Array.isArray(files) || files.length > 20) throw new Error('Choose at most 20 images at a time.');
+      if (!Array.isArray(files) || files.length > 20) throw new Error(tr("Choose at most 20 images at a time."));
       const images = [];
       for (const file of files) images.push(await loadImage(file.name, Buffer.from(file.bytes)));
       return images;
     });
     handle('journal:render-image', async data => {
-      if (typeof data !== 'string' || data.length > 40000000) throw new Error('Invalid image.');
+      if (typeof data !== 'string' || data.length > 40000000) throw new Error(tr("Invalid image."));
       const pipeline = await imagePipeline(Buffer.from(data, 'base64'));
       return (await pipeline.png().toBuffer()).toString('base64');
     });
     await window.loadFile(index);
-  }).catch(error => { dialog.showErrorBox('Liquidity Edge could not start', error.message); app.quit(); });
+  }).catch(error => { dialog.showErrorBox(tr("Liquidity Edge could not start"), error.message); app.quit(); });
   app.on('window-all-closed', () => app.quit());
 }

@@ -24,7 +24,7 @@ struct EquityChart: View {
                 RuleMark(x: .value("Selected", nearest.date)).foregroundStyle(Palette.muted).annotation(position: .top, alignment: .leading) { Text(Format.number(value(nearest))).font(.caption.monospaced()).padding(6).background(Palette.raised, in: RoundedRectangle(cornerRadius: 5)) }
             }
         }.chartXSelection(value: $selectedDate).chartYAxis { AxisMarks(position: .trailing) { _ in AxisGridLine().foregroundStyle(Palette.muted.opacity(0.1)); AxisValueLabel().foregroundStyle(Palette.muted) } }.chartXAxis { AxisMarks(values: .automatic(desiredCount: 5)) { _ in AxisValueLabel(format: .dateTime.month(.abbreviated).day()).foregroundStyle(Palette.muted) } }.frame(height: height).animation(store.preferences.animations && !reduceMotion ? .easeInOut(duration: 0.25) : nil, value: points.count)
-        .accessibilityLabel("\(mode.rawValue) performance curve, \(max(0, points.count - 1)) trades")
+        .accessibilityLabel(L10n.text("\(mode.rawValue) performance curve, \(max(0, points.count - 1)) trades"))
         .mask(alignment: .leading) { Rectangle().scaleEffect(x: revealed || !store.preferences.animations || reduceMotion ? 1 : 0, anchor: .leading) }
         .onAppear { withAnimation(store.preferences.animations && !reduceMotion ? .easeOut(duration: 0.3) : nil) { revealed = true } }
     }
@@ -52,17 +52,17 @@ struct PerformanceHeatmap: View {
     var body: some View {
         let values = buckets
         VStack(alignment: .leading, spacing: 7) {
-            HStack(spacing: 5) { Text("DAY").frame(width: 36, alignment: .leading); ForEach(19...32, id: \.self) { slot in Text(String(format: "%02d:%02d", slot / 2, slot % 2 * 30)).frame(maxWidth: .infinity) } }.font(.system(size: 8, design: .monospaced)).foregroundStyle(Palette.muted)
+            HStack(spacing: 5) { Text(L10n.text("DAY")).frame(width: 36, alignment: .leading); ForEach(19...32, id: \.self) { slot in Text(String(format: "%02d:%02d", slot / 2, slot % 2 * 30)).frame(maxWidth: .infinity) } }.font(.system(size: 8, design: .monospaced)).foregroundStyle(Palette.muted)
             ForEach(2...6, id: \.self) { day in
                 HStack(spacing: 5) {
-                    Text(calendar.shortWeekdaySymbols[day - 1]).font(.system(size: 10, design: .monospaced)).foregroundStyle(Palette.muted).frame(width: 36, alignment: .leading)
+                    Text(L10n.text(calendar.shortWeekdaySymbols[day - 1])).font(.system(size: 10, design: .monospaced)).foregroundStyle(Palette.muted).frame(width: 36, alignment: .leading)
                     ForEach(19...32, id: \.self) { slot in
                         let p = values[day * 100 + slot]; let r = p?.averageR
-                        Text(r.map { Format.number($0, digits: 1) } ?? "·").font(.system(size: 9, design: .monospaced)).foregroundStyle(r.map { Palette.outcome($0) } ?? Palette.muted.opacity(0.35)).frame(maxWidth: .infinity).frame(height: 30).background(r.map { Palette.outcome($0).opacity(min(0.35, 0.07 + abs($0) * 0.09)) } ?? Palette.raised.opacity(0.45), in: RoundedRectangle(cornerRadius: 4)).help("\(calendar.weekdaySymbols[day - 1]) · n = \(p?.count ?? 0) · \(Format.r(r))")
+                        Text(r.map { Format.number($0, digits: 1) } ?? "·").font(.system(size: 9, design: .monospaced)).foregroundStyle(r.map { Palette.outcome($0) } ?? Palette.muted.opacity(0.35)).frame(maxWidth: .infinity).frame(height: 30).background(r.map { Palette.outcome($0).opacity(min(0.35, 0.07 + abs($0) * 0.09)) } ?? Palette.raised.opacity(0.45), in: RoundedRectangle(cornerRadius: 4)).help(L10n.text("\(calendar.weekdaySymbols[day - 1]) · n = \(p?.count ?? 0) · \(Format.r(r))"))
                     }
                 }
             }
-            Text("Average R · half-hour entry buckets · \(calendar.timeZone.identifier)").font(.system(size: 9)).foregroundStyle(Palette.muted)
+            Text(L10n.text("Average R · half-hour entry buckets · \(calendar.timeZone.identifier)")).font(.system(size: 9)).foregroundStyle(Palette.muted)
         }
     }
 }

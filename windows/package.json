@@ -1,7 +1,7 @@
 {
   "name": "liquidity-edge-windows",
   "productName": "Liquidity Edge",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Offline trading journal for Windows",
   "author": "Edip Mangtay",
   "private": true,
@@ -11,7 +11,7 @@
     "dev": "vite --host 127.0.0.1",
     "build": "vite build",
     "start": "electron .",
-    "test": "node --test tests/core.test.mjs",
+    "test": "node --test tests/*.test.mjs",
     "test:e2e": "playwright test",
     "dist:win": "npm run build && electron-builder --win nsis --x64 --publish never"
   },
@@ -51,6 +51,8 @@
       "artifactName": "Liquidity-Edge-Windows-Setup.exe"
     },
     "nsis": {
+      "language": "1055",
+      "installerLanguages": ["tr_TR"],
       "oneClick": true,
       "perMachine": false,
       "allowElevation": false,

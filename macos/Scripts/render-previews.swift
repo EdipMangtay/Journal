@@ -10,7 +10,7 @@ import AppKit
         let output = URL(fileURLWithPath: CommandLine.arguments[1], isDirectory: true)
         try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
         func render<V: View>(_ name: String, _ view: V, width: CGFloat = 1440, height: CGFloat = 1000) throws {
-            let content = view.environment(store).environment(\.colorScheme, .dark).environment(\.timeZone, store.preferences.calendar.timeZone).frame(width: width, height: height).background(Palette.canvas)
+            let content = view.environment(store).environment(\.locale, L10n.locale).environment(\.colorScheme, .dark).environment(\.timeZone, store.preferences.calendar.timeZone).frame(width: width, height: height).background(Palette.canvas)
             let host = NSHostingView(rootView: content)
             host.frame = NSRect(x: 0, y: 0, width: width, height: height)
             host.layoutSubtreeIfNeeded()

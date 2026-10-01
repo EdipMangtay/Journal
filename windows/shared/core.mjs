@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import Papa from 'papaparse';
+import { t as translate } from './i18n.mjs';
 
 export const catalog = {
   sweeps: ['BSL Sweep', 'SSL Sweep', 'Equal Highs', 'Equal Lows', 'Previous Day High', 'Previous Day Low', 'Previous Week High', 'Previous Week Low', 'Session High', 'Session Low', 'Internal Liquidity', 'External Liquidity'],
@@ -150,6 +151,24 @@ export function dateKey(timestamp, timezone) {
   const part = type => parts.find(p => p.type === type).value;
   return `${part('year')}-${part('month')}-${part('day')}`;
 }
+export function wallTime(timestamp, timezone) {
+  if (timestamp == null) return '';
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(timestamp);
+  const get = type => parts.find(p => p.type === type).value;
+  return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}`;
+}
+export function instantFromWallTime(value, timezone) {
+  const target = Date.parse(value + ':00Z');
+  if (!Number.isFinite(target)) throw new Error('Geçerli bir tarih ve saat gir.');
+  let stamp = target;
+  // Intl supplies zone rules; resolve the corresponding instant, including DST offsets.
+  for (let i = 0; i < 4; i++) {
+    const displayed = wallTime(stamp, timezone);
+    if (displayed === value) return stamp;
+    stamp += target - Date.parse(displayed + ':00Z');
+  }
+  throw new Error('Bu saat, seçilen saat diliminde yaz saati geçişi nedeniyle yok. Başka bir saat seç.');
+}
 export function groups(trades, dimension, timezone = 'America/New_York') {
   const buckets = new Map();
   for (const t of trades) {
@@ -210,9 +229,13 @@ export function importCSV(text, setups = []) {
 }
 
 export function matchesSearch(trade, query) {
-  let tokens = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const normalize = value => value.toLowerCase().replaceAll('ı', 'i').normalize('NFD').replace(/\p{M}/gu, '');
+  let tokens = normalize(query.trim()).split(/\s+/).filter(Boolean);
   const f = flags(trade), type = classification(trade);
   const special = [
+    ['kuralsiz kazanc', type === 'INVALID WINNER'], ['kuralsiz zarar', type === 'INVALID LOSER'], ['kuralli kazanc', type === 'VALID WINNER'], ['kuralli zarar', type === 'VALID LOSER'],
+    ['yalniz crt', f.CRT && !f.SSMT && !f.TSMO && !f.QT && !f.MMXM], ['ssmt yok', !f.SSMT], ['tsmo yok', !f.TSMO],
+    ['kuralli', compliant(trade)], ['kuralsiz', !compliant(trade)], ['kazanc', net(trade) >= .005], ['zarar', net(trade) <= -.005],
     ['invalid winner', type === 'INVALID WINNER'], ['invalid loser', type === 'INVALID LOSER'], ['valid winner', type === 'VALID WINNER'], ['valid loser', type === 'VALID LOSER'],
     ['crt only', f.CRT && !f.SSMT && !f.TSMO && !f.QT && !f.MMXM], ['no ssmt', !f.SSMT], ['no tsmo', !f.TSMO], ['ssmt', f.SSMT], ['tsmo', f.TSMO],
     ['crt', f.CRT], ['qt', trade.qt.enabled], ['mmxm', trade.mmxm.model !== 'None'], ['loser', net(trade) <= -.005], ['winner', net(trade) >= .005]
@@ -221,7 +244,8 @@ export function matchesSearch(trade, query) {
     const words = phrase.split(' '), index = tokens.findIndex((_, i) => words.every((word, j) => tokens[i + j] === word));
     if (index >= 0) { if (!match) return false; tokens.splice(index, words.length); }
   }
-  const haystack = [trade.instrument, trade.instrument.toUpperCase() === 'XAUUSD' ? 'gold' : '', trade.direction, trade.session, trade.setupName, trade.grade, trade.qt.dailyQuarter, trade.qt.higherQuarter, trade.entryTimeframe, trade.drawOnLiquidity, trade.notes.thesis, trade.notes.lesson, type, ...trade.tags, ...trade.brokenRules, ...trade.confirmations, ...trade.emotional.emotions].join(' ').toLowerCase();
+  const localized = [trade.direction, trade.session, type, ...trade.brokenRules, ...trade.confirmations, ...trade.emotional.emotions].map(translate);
+  const haystack = normalize([trade.instrument, trade.instrument.toUpperCase() === 'XAUUSD' ? 'gold altin' : '', trade.direction, trade.session, trade.setupName, trade.grade, trade.qt.dailyQuarter, trade.qt.higherQuarter, trade.entryTimeframe, trade.drawOnLiquidity, trade.notes.thesis, trade.notes.lesson, type, ...trade.tags, ...trade.brokenRules, ...trade.confirmations, ...trade.emotional.emotions, ...localized].join(' '));
   return tokens.every(token => haystack.includes(token));
 }
 

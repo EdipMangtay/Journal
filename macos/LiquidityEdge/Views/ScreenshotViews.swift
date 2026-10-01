@@ -12,17 +12,17 @@ struct ScreenshotAttachmentEditor: View {
     @State private var loading = false
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            HStack { Picker("Category", selection: $category) { ForEach(Catalog.screenshotCategories, id: \.self) { Text($0) } }.frame(width: 270); Spacer(); if loading { ProgressView().controlSize(.small) }; Button("Add images…") { importing = true } }
-            VStack(spacing: 8) { Image(systemName: "photo.badge.plus").font(.title2); Text("Drop screenshots from Finder").font(.callout); Text("PNG, JPEG, HEIC, TIFF · up to 30 MB each").font(.caption).foregroundStyle(Palette.muted) }.frame(maxWidth: .infinity).padding(24).background(targeted ? Palette.mint.opacity(0.1) : Palette.raised.opacity(0.5), in: RoundedRectangle(cornerRadius: 8)).overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Palette.muted.opacity(0.3), style: StrokeStyle(dash: [5, 5]))).dropDestination(for: URL.self) { urls, _ in importURLs(urls); return !urls.isEmpty } isTargeted: { targeted = $0 }
+            HStack { Picker(L10n.text("Category"), selection: $category) { ForEach(Catalog.screenshotCategories, id: \.self) { Text(L10n.text($0)) } }.frame(width: 270); Spacer(); if loading { ProgressView().controlSize(.small) }; Button(L10n.text("Add images…")) { importing = true } }
+            VStack(spacing: 8) { Image(systemName: "photo.badge.plus").font(.title2); Text(L10n.text("Drop screenshots from Finder")).font(.callout); Text(L10n.text("PNG, JPEG, HEIC, TIFF · up to 30 MB each")).font(.caption).foregroundStyle(Palette.muted) }.frame(maxWidth: .infinity).padding(24).background(targeted ? Palette.mint.opacity(0.1) : Palette.raised.opacity(0.5), in: RoundedRectangle(cornerRadius: 8)).overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Palette.muted.opacity(0.3), style: StrokeStyle(dash: [5, 5]))).dropDestination(for: URL.self) { urls, _ in importURLs(urls); return !urls.isEmpty } isTargeted: { targeted = $0 }
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 180))], spacing: 14) {
                 ForEach(shots) { shot in
                     VStack(alignment: .leading, spacing: 8) {
                         Button { selected = shot } label: { ScreenshotThumbnail(data: shot.thumbnailData).frame(height: 120).clipped() }.buttonStyle(.plain)
-                        HStack { VStack(alignment: .leading, spacing: 3) { Text(shot.category).font(.caption); Text(shot.name).font(.system(size: 9)).foregroundStyle(Palette.muted).lineLimit(1) }; Spacer(); Button { shots.removeAll { $0.id == shot.id } } label: { Image(systemName: "trash") }.buttonStyle(.borderless).help("Remove attachment") }
+                        HStack { VStack(alignment: .leading, spacing: 3) { Text(L10n.text(shot.category)).font(.caption); Text(shot.name).font(.system(size: 9)).foregroundStyle(Palette.muted).lineLimit(1) }; Spacer(); Button { shots.removeAll { $0.id == shot.id } } label: { Image(systemName: "trash") }.buttonStyle(.borderless).help(L10n.text("Remove attachment")) }
                     }.padding(8).background(Palette.raised, in: RoundedRectangle(cornerRadius: 8))
                 }
             }
-            if let error { Text(error).font(.caption).foregroundStyle(Palette.amber) }
+            if let error { Text(L10n.text(error)).font(.caption).foregroundStyle(Palette.amber) }
         }.fileImporter(isPresented: $importing, allowedContentTypes: [.image], allowsMultipleSelection: true) { result in
             switch result { case .success(let urls): importURLs(urls); case .failure(let failure): error = failure.localizedDescription }
         }.sheet(item: $selected) { shot in ScreenshotViewer(initial: shot) { changed in if let index = shots.firstIndex(where: { $0.id == changed.id }) { shots[index] = changed } } }
@@ -51,7 +51,7 @@ struct ScreenshotViewer: View {
     @State private var shot: ScreenshotDraft
     @State private var zoom = 1.0
     @State private var tool = "Pan"
-    @State private var label = "Liquidity"
+    @State private var label = "Likidite"
     @State private var pending: ImageAnnotation?
     let onSave: (ScreenshotDraft) -> Void
     init(initial: ScreenshotDraft, onSave: @escaping (ScreenshotDraft) -> Void) { _shot = State(initialValue: initial); self.onSave = onSave }
@@ -59,16 +59,16 @@ struct ScreenshotViewer: View {
         VStack(spacing: 0) {
             HStack {
                 Text(shot.name).font(.headline).lineLimit(1); Spacer()
-                Picker("Category", selection: $shot.category) { ForEach(Catalog.screenshotCategories, id: \.self) { Text($0) } }.frame(width: 230)
-                Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
-                Button("Save review") { onSave(shot); dismiss() }.buttonStyle(.borderedProminent)
+                Picker(L10n.text("Category"), selection: $shot.category) { ForEach(Catalog.screenshotCategories, id: \.self) { Text(L10n.text($0)) } }.frame(width: 230)
+                Button(L10n.text("Cancel")) { dismiss() }.keyboardShortcut(.cancelAction)
+                Button(L10n.text("Save review")) { onSave(shot); dismiss() }.buttonStyle(.borderedProminent)
             }.padding(18)
             HStack {
-                Picker("Tool", selection: $tool) { ForEach(["Pan", "Arrow", "Rectangle", "Text", "Liquidity marker"], id: \.self) { Text($0) } }.pickerStyle(.segmented).frame(width: 480)
-                if tool == "Text" || tool == "Liquidity marker" { TextField("Label", text: $label).textFieldStyle(.roundedBorder).frame(width: 130) }
-                Spacer(); Button { if !shot.annotations.isEmpty { shot.annotations.removeLast() } } label: { Image(systemName: "arrow.uturn.backward") }.disabled(shot.annotations.isEmpty).help("Undo last annotation")
-                Slider(value: $zoom, in: 0.5...4).frame(width: 110); Text("\(Int(zoom * 100))%").font(.caption.monospaced()).frame(width: 45)
-                Button { NSApp.keyWindow?.toggleFullScreen(nil) } label: { Image(systemName: "arrow.up.left.and.arrow.down.right") }.help("Toggle full screen")
+                Picker(L10n.text("Tool"), selection: $tool) { ForEach(["Pan", "Arrow", "Rectangle", "Text", "Liquidity marker"], id: \.self) { Text(L10n.text($0)) } }.pickerStyle(.segmented).frame(width: 480)
+                if tool == "Text" || tool == "Liquidity marker" { TextField(L10n.text("Label"), text: $label).textFieldStyle(.roundedBorder).frame(width: 130) }
+                Spacer(); Button { if !shot.annotations.isEmpty { shot.annotations.removeLast() } } label: { Image(systemName: "arrow.uturn.backward") }.disabled(shot.annotations.isEmpty).help(L10n.text("Undo last annotation"))
+                Slider(value: $zoom, in: 0.5...4).frame(width: 110); Text(L10n.text("\(Int(zoom * 100))%")).font(.caption.monospaced()).frame(width: 45)
+                Button { NSApp.keyWindow?.toggleFullScreen(nil) } label: { Image(systemName: "arrow.up.left.and.arrow.down.right") }.help(L10n.text("Toggle full screen"))
             }.padding(.horizontal, 18).padding(.bottom, 14)
             GeometryReader { available in
                 ScrollView([.horizontal, .vertical]) {
@@ -85,7 +85,7 @@ struct ScreenshotViewer: View {
                     }
                 }
             }.background(Color.black.opacity(0.7))
-            HStack { Text("\(shot.annotations.count) annotations · Drag to draw; choose Pan to scroll."); Spacer(); Text("Original image remains intact.") }.font(.caption).foregroundStyle(Palette.muted).padding(14)
+            HStack { Text(L10n.text("\(shot.annotations.count) annotations · Drag to draw; choose Pan to scroll.")); Spacer(); Text(L10n.text("Original image remains intact.")) }.font(.caption).foregroundStyle(Palette.muted).padding(14)
         }.frame(minWidth: 1000, idealWidth: 1120, minHeight: 740, idealHeight: 820).background(Palette.panel).foregroundStyle(Palette.ink)
     }
     private func annotation(_ value: DragGesture.Value, size: CGSize) -> ImageAnnotation {
@@ -121,14 +121,14 @@ struct ScreenshotLibraryView: View {
     private var items: [(TradeRecord, TradeScreenshot)] { store.trades.flatMap { trade in (store.model(trade.id)?.screenshots ?? []).filter { category == "All" || $0.category == category }.map { (trade, $0) } } }
     var body: some View {
         ScrollView { VStack(alignment: .leading, spacing: 24) {
-            HStack { PageHeader(eyebrow: "Visual memory", title: "Build your pattern library.", subtitle: "Context, entry and review images linked to real executions."); Spacer(); Picker("Category", selection: $category) { ForEach(["All"] + Catalog.screenshotCategories, id: \.self) { Text($0) } }.frame(width: 230) }
+            HStack { PageHeader(eyebrow: "Visual memory", title: "Build your pattern library.", subtitle: "Context, entry and review images linked to real executions."); Spacer(); Picker(L10n.text("Category"), selection: $category) { ForEach(["All"] + Catalog.screenshotCategories, id: \.self) { Text(L10n.text($0)) } }.frame(width: 230) }
             if items.isEmpty { EmptyJournal(title: "Your visual library is empty.", subtitle: "Attach screenshots to a trade. Review them here by stage.") }
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 260))], spacing: 18) {
                 ForEach(items, id: \.1.id) { trade, shot in
                     Panel {
                         Button { do { selected = try ScreenshotDraft(shot); selectedTradeID = trade.id } catch { store.report(error) } } label: { ScreenshotThumbnail(data: shot.thumbnailData).frame(height: 170) }.buttonStyle(.plain)
                         HStack { Text(trade.instrument).fontWeight(.semibold); Badge(text: shot.category); Spacer(); Text(Format.r(trade.rMultiple)).foregroundStyle(Palette.outcome(trade.netPnL)) }
-                        Button("Open trade →") { openTrade(trade) }.buttonStyle(.borderless)
+                        Button(L10n.text("Open trade →")) { openTrade(trade) }.buttonStyle(.borderless)
                     }
                 }
             }

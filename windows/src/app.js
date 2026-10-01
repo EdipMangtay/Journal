@@ -1,7 +1,8 @@
+import { t as tr, message, errorText } from '../shared/i18n.mjs';
 import './theme.css';
 import { createIcons, icons } from 'lucide';
 import demoFixture from '../assets/demo.json';
-import { newTrade, parseBackup, tradeSchema, net, compliant, execution, groups, dateKey, matchesSearch, periodRange } from '../shared/core.mjs';
+import { newTrade, parseBackup, tradeSchema, net, compliant, execution, groups, dateKey, matchesSearch, periodRange, instantFromWallTime } from '../shared/core.mjs';
 import { esc, glyph, command, toggle, imageGallery, workspaceView, drawCharts, navigation } from './views.js';
 import { tradeEditor, setupEditor, reviewEditor, reviewSnapshot, detailView, processPreview } from './editors.js';
 import { openImage } from './image-review.js';
@@ -11,10 +12,11 @@ const emptyFilters=()=>({search:'',instrument:'',session:'',compliance:'',from:'
 const state={view:'Dashboard',filters:emptyFilters(),facets:{},advanced:false,period:'ALL TIME',curveMode:'$',analysis:'Setup',groupMetric:'Average R',month:new Date(),selectedDay:'',showR:false,imageCategory:'',tradeSort:'Newest',demo:false,collapsed:false};
 let data,charts=[],draft,draftKind,draftShots=[],busy=false;
 const decorate=()=>createIcons({icons});
-function notify(message,error=false){$('#toast').textContent=message;$('#toast').classList.toggle('warning',error);clearTimeout(notify.timer);notify.timer=setTimeout(()=>$('#toast').textContent='',error?10000:4000);}
-const report=error=>notify(error.issues?error.issues.map(i=>i.message).join('\n'):error.message,true);
+function notify(message,error=false){$('#toast').textContent=tr(message);$('#toast').classList.toggle('warning',error);clearTimeout(notify.timer);notify.timer=setTimeout(()=>$('#toast').textContent='',error?10000:4000);}
+const report=error=>notify(errorText(error),true);
 function filtered(){
   const f=state.filters,zone=data.preferences.timezone,range=state.view==='Dashboard'&&state.period!=='ALL TIME'?periodRange(Date.now(),{TODAY:'Daily','THIS WEEK':'Weekly','THIS MONTH':'Monthly'}[state.period],zone):null;
+  if(state.view==='Dashboard')return data.trades.filter(t=>!range||dateKey(t.date,zone)>=range.from&&dateKey(t.date,zone)<=range.to);
   return data.trades.filter(t=>{const day=dateKey(t.date,zone);return matchesSearch(t,f.search)&&(!f.instrument||t.instrument===f.instrument)&&(!f.session||t.session===f.session)&&(!f.compliance||compliant(t)===(f.compliance==='valid'))&&(!f.from||day>=f.from)&&(!f.to||day<=f.to)&&(!range||day>=range.from&&day<=range.to)&&Object.entries(state.facets).every(([key,value])=>!value||groups([t],key,zone).some(g=>g.name===value));});
 }
 function render(){
@@ -22,23 +24,25 @@ function render(){
   charts.forEach(c=>c.destroy());const p=data.preferences;
   document.documentElement.classList.toggle('light',p.theme==='Light'||p.theme==='System'&&matchMedia('(prefers-color-scheme: light)').matches);document.documentElement.classList.toggle('no-motion',!p.animations);
   const rows=filtered();$('#app').innerHTML=workspaceView(data,state,rows);decorate();charts=drawCharts(data,state,rows);
+  const pageKey=state.view+':'+state.demo;
+  if(render.pageKey!==pageKey){window.scrollTo(0,0);render.pageKey=pageKey;}
   if(state.view==='Settings')api.dataPath().then(path=>{if($('#data-path'))$('#data-path').textContent=path;}).catch(report);
 }
 async function persist(next){const valid=parseBackup({...next,started:true});data=state.demo?valid:await api.save(valid);render();}
 function showEditor(html,kind){draftKind=kind;editor.innerHTML=html;editor.style.width=kind==='detail'?'min(1000px,calc(100vw - 40px))':'';if(!editor.open)editor.showModal();decorate();}
-function editTrade(id){const record=data.trades.find(t=>t.id===id);draft=structuredClone(record||newTrade());draftShots=structuredClone(data.screenshots.filter(s=>s.tradeID===id).map(s=>s.screenshot));showEditor(tradeEditor(draft,data,draftShots,!record),'trade');updateTradePreview();}
+function editTrade(id){const record=data.trades.find(t=>t.id===id);draft=structuredClone(record||{...newTrade(),riskPercent:data.preferences.defaultRiskPercent,riskDollars:data.preferences.accountSize*data.preferences.defaultRiskPercent/100});draftShots=structuredClone(data.screenshots.filter(s=>s.tradeID===id).map(s=>s.screenshot));showEditor(tradeEditor(draft,data,draftShots,!record),'trade');updateTradePreview();}
 function showTrade(id){draft=structuredClone(data.trades.find(t=>t.id===id));if(draft){draftShots=[];showEditor(detailView(draft,data),'detail');}}
 const blankSetup=name=>({id:crypto.randomUUID(),playbookID:crypto.randomUUID(),name,summary:'',conditions:'',entry:'',invalidation:'',target:'',risk:'',images:[]});
 function editSetup(id){draft=structuredClone(data.setups.find(s=>s.id===id)||blankSetup(''));draftShots=structuredClone(draft.images);showEditor(setupEditor(draft,draftShots),'setup');}
 function editReview(id){draft=structuredClone(data.reviews.find(r=>r.id===id)||{id:crypto.randomUUID(),period:'Weekly',date:Date.now(),worked:'',didNot:'',repeatNext:'',stop:'',adjustment:''});draftShots=[];showEditor(reviewEditor(draft,data),'review');}
-function confirmAction(message){const dialog=$('#confirm');dialog.returnValue='cancel';dialog.innerHTML=`<p>${esc(message)}</p><form method="dialog" class="footer"><button value="cancel" autofocus>Cancel</button><button value="confirm" class="danger">Delete</button></form>`;dialog.showModal();return new Promise(resolve=>dialog.addEventListener('close',()=>resolve(dialog.returnValue==='confirm'),{once:true}));}
+function confirmAction(message){const dialog=$('#confirm');dialog.returnValue='cancel';dialog.innerHTML=`<p>${esc(tr(message))}</p><form method="dialog" class="footer"><button value="cancel" autofocus>Vazgeç</button><button value="confirm" class="danger">Sil</button></form>`;dialog.showModal();return new Promise(resolve=>dialog.addEventListener('close',()=>resolve(dialog.returnValue==='confirm'),{once:true}));}
 function gatherTrade(form,validate=true){
   const result=structuredClone(draft),values=new FormData(form),lists=['contextTimeframes','liquidityTaken','confirmations','brokenRules','emotional.emotions','ssmt.markets'],optional=['entryPrice','stopLoss','takeProfit','exitPrice','positionSize','riskDollars','riskPercent','rMultiple','crt.high','crt.low'];
   for(const input of form.querySelectorAll('[name]')){
     const name=input.name;if(lists.includes(name)||['attachment-category','record-exit'].includes(name))continue;
     let value=input.type==='checkbox'?input.checked:input.value;
     if(input.type==='number'||input.type==='range')value=value===''&&optional.includes(name)?undefined:Number(value);
-    if(['date','exitDate'].includes(name))value=value?new Date(value).getTime():undefined;
+    if(['date','exitDate'].includes(name))value=value?instantFromWallTime(value,data.preferences.timezone):undefined;
     if(name==='tags')value=value.split(',').map(v=>v.trim()).filter(Boolean);
     const[head,tail]=name.split('.');if(tail)result[head][tail]=value;else result[head]=value;
   }
@@ -50,7 +54,7 @@ function gatherTrade(form,validate=true){
 function updateTradePreview(){
   if(draftKind!=='trade'||!$('#edit-form'))return;const t=gatherTrade($('#edit-form'),false);$('#process-preview').innerHTML=processPreview(t);$('#overall-score').textContent=`${execution(t).toFixed(0)} / 100`;
   const planned=t.entryPrice!=null&&t.stopLoss!=null&&t.takeProfit!=null&&t.entryPrice!==t.stopLoss?Math.abs(t.takeProfit-t.entryPrice)/Math.abs(t.entryPrice-t.stopLoss):null;
-  $('#price-preview').textContent=`Net PnL ${net(t).toFixed(2)} / Planned RR ${planned==null?'Not recorded':planned.toFixed(2)}`;
+  $('#price-preview').textContent=`Net K/Z ${net(t).toLocaleString('tr-TR')} / Planlanan risk/getiri ${planned==null?tr('Not recorded'):planned.toLocaleString('tr-TR')}`;
   $('#broken-rule-fields').hidden=t.followsPlan&&!t.brokenRules.length;$('#exit-time-field').hidden=!$('#edit-form [name="record-exit"]').checked;
   for(const element of editor.querySelectorAll('[data-conditional]')){const[head,key]=element.dataset.conditional.split('.');element.hidden=key==='model'?t[head][key]==='None':!t[head][key];}
 }
@@ -65,14 +69,13 @@ function showImage(id){const shot=[...draftShots,...data.screenshots.map(s=>s.sc
   const next=structuredClone(data);next.screenshots=next.screenshots.map(s=>s.screenshot.id===id?{...s,screenshot:updated}:s);next.setups.forEach(s=>s.images=s.images.map(image=>image.id===id?updated:image));await persist(next);if(editor.open&&draftKind==='detail')showTrade(draft.id);
 },decorate,report);}
 function searchCommand(){
-  const dialog=document.createElement('dialog');dialog.className='command-palette';dialog.innerHTML=`<header><input type="search" aria-label="Search workspace" placeholder="Search trades or navigate...">${command('dismiss','Close')}</header><div class="body"></div>`;document.body.append(dialog);const input=dialog.querySelector('input'),body=dialog.querySelector('.body');
-  function results(){const q=input.value;body.innerHTML=navigation.filter(([name])=>!q||name.toLowerCase().includes(q.toLowerCase())).map(([name,icon])=>`<button data-destination="${name}">${glyph(icon)}${name}</button>`).join('')+data.trades.filter(t=>matchesSearch(t,q)).sort((a,b)=>b.date-a.date).slice(0,12).map(t=>`<button data-result="${t.id}">${esc(t.instrument)} / ${esc(t.setupName)}<small>${dateKey(t.date,data.preferences.timezone)}</small></button>`).join('');decorate();}
-  input.oninput=results;dialog.onclick=e=>{const b=e.target.closest('button');if(!b)return;dialog.close();if(b.dataset.destination==='New Trade')editTrade();else if(b.dataset.destination){state.view=b.dataset.destination;render();}else if(b.dataset.result)showTrade(b.dataset.result);};dialog.onclose=()=>dialog.remove();results();dialog.showModal();input.focus();
+  const dialog=document.createElement('dialog');dialog.className='command-palette';dialog.innerHTML=`<header><input type="search" aria-label="Çalışma alanında ara" placeholder="İşlem veya sayfa ara…">${command('dismiss','Close')}</header><div class="body"></div>`;document.body.append(dialog);const input=dialog.querySelector('input'),body=dialog.querySelector('.body');
+  function results(){const q=input.value;body.innerHTML=navigation.filter(([name])=>!q||tr(name).toLocaleLowerCase('tr-TR').includes(q.toLocaleLowerCase('tr-TR'))||name.toLowerCase().includes(q.toLowerCase())).map(([name,icon])=>`<button data-destination="${name}">${glyph(icon)}${tr(name)}</button>`).join('')+data.trades.filter(t=>matchesSearch(t,q)).sort((a,b)=>b.date-a.date).slice(0,30).map(t=>`<button data-result="${t.id}">${esc(t.instrument)} / ${esc(t.setupName)}<small>${dateKey(t.date,data.preferences.timezone)}</small></button>`).join('');decorate();}
+  const footer=document.createElement('footer');footer.className='footer';footer.innerHTML=command('search-all','Show all matching trades');dialog.append(footer);
+  input.oninput=results;dialog.onclick=e=>{const b=e.target.closest('button');if(!b)return;dialog.close();if(b.dataset.action==='search-all'){state.filters=emptyFilters();state.facets={};state.filters.search=input.value;state.view='Trades';render();}else if(b.dataset.destination==='New Trade')editTrade();else if(b.dataset.destination){state.view=b.dataset.destination;render();}else if(b.dataset.result)showTrade(b.dataset.result);};dialog.onclose=()=>dialog.remove();results();dialog.showModal();input.focus();
 }
 function dayInstant(day){
-  // Resolve noon in the journal zone rather than the computer's current zone.
-  let stamp=Date.parse(day+'T12:00:00Z');const formatter=new Intl.DateTimeFormat('en-CA',{timeZone:data.preferences.timezone,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
-  for(let i=0;i<2;i++){const p=formatter.formatToParts(stamp),get=k=>p.find(x=>x.type===k).value,wall=Date.UTC(+get('year'),+get('month')-1,+get('day'),+get('hour'),+get('minute'));stamp+=Date.parse(day+'T12:00:00Z')-wall;}return stamp;
+  return instantFromWallTime(day+'T12:00',data.preferences.timezone);
 }
 async function deleteRecord(kind,id){if(!await confirmAction(`Delete this ${kind}? This cannot be undone.`))return;const next=structuredClone(data),key={trade:'trades',setup:'setups',review:'reviews'}[kind];next[key]=next[key].filter(item=>item.id!==id);if(kind==='trade')next.screenshots=next.screenshots.filter(s=>s.tradeID!==id);if(kind==='setup')next.trades.forEach(t=>{if(t.setupID===id){delete t.setupID;t.setupName='Unassigned';}});await persist(next);if(editor.open)editor.close();notify('Deleted.');}
 document.addEventListener('click',async event=>{
@@ -96,7 +99,7 @@ document.addEventListener('click',async event=>{
     }else if(action==='quick-setup'){
       const name=$('#quick-setup').value.trim();if(!name)return;const t=gatherTrade($('#edit-form'),false),s=blankSetup(name);await persist({...data,setups:[...data.setups,s]});draft={...t,setupID:s.id,setupName:s.name};showEditor(tradeEditor(draft,data,draftShots,true),'trade');updateTradePreview();
     }else if(action==='add-session'){
-      const input=$('#custom-session'),name=input.value.trim();if(!name)return;const hidden=$('#preferences [name=sessions]'),names=hidden.value.split(',').map(v=>v.trim()).filter(Boolean);if(name.includes(','))throw new Error('Session names cannot contain commas.');if(names.includes(name))return;names.push(name);hidden.value=names.join(', ');$('#session-fields').insertAdjacentHTML('beforeend',`<div class="session-row"><span>${esc(name)}</span><input name="session:${esc(name)}" aria-label="${esc(name)} session hours">${command('remove-session','', 'circle-minus',`class="icon" title="Remove session" aria-label="Remove session" data-id="${esc(name)}"`)}</div>`);input.value='';decorate();
+      const input=$('#custom-session'),name=input.value.trim();if(!name)return;const hidden=$('#preferences [name=sessions]'),names=hidden.value.split(',').map(v=>v.trim()).filter(Boolean);if(name.includes(','))throw new Error('Session names cannot contain commas.');if(names.includes(name))return;names.push(name);hidden.value=names.join(', ');$('#session-fields').insertAdjacentHTML('beforeend',`<div class="session-row"><span>${esc(name)}</span><input name="session:${esc(name)}" aria-label="${esc(name)} seans saatleri">${command('remove-session','', 'circle-minus',`class="icon" title="Seansı kaldır" aria-label="Seansı kaldır" data-id="${esc(name)}"`)}</div>`);input.value='';decorate();
     }else if(action==='remove-session'){const hidden=$('#preferences [name=sessions]');hidden.value=hidden.value.split(',').map(v=>v.trim()).filter(v=>v!==target.dataset.id).join(', ');target.closest('.session-row').remove();}
     else if(action==='remove-rule')await persist({...data,rules:data.rules.filter(r=>r.id!==target.dataset.id)});
     else if(['export-backup','import-backup','export-csv','import-csv'].includes(action)){busy=true;const result=await api[{'export-backup':'exportBackup','import-backup':'importBackup','export-csv':'exportCSV','import-csv':'importCSV'}[action]](data,state.demo);if(result&&action.startsWith('import')){data=result;render();notify('Import complete.');}else if(result)notify('Export complete.');}
@@ -124,7 +127,7 @@ document.addEventListener('submit',async event=>{
     if(form.id==='edit-form'){
       let record;if(draftKind==='trade'){record=gatherTrade(form);next.screenshots=[...next.screenshots.filter(s=>s.tradeID!==record.id),...draftShots.map(screenshot=>({tradeID:record.id,screenshot}))];}
       else if(draftKind==='review')record={...draft,...Object.fromEntries(fields),date:dayInstant(fields.get('date'))};
-      else{record={...draft,images:draftShots};for(const key of ['name','summary','conditions','entry','invalidation','target','risk'])record[key]=fields.get(key);}
+      else{record={...draft,images:draftShots};for(const key of ['name','summary','conditions','entry','invalidation','target','risk'])record[key]=fields.get(key);record.name=record.name.trim();if(next.setups.some(s=>s.id!==record.id&&s.name.localeCompare(record.name,undefined,{sensitivity:'accent'})===0))throw new Error('A setup with this name already exists.');}
       const key={trade:'trades',setup:'setups',review:'reviews'}[draftKind],index=next[key].findIndex(x=>x.id===record.id);if(index<0)next[key].push(record);else next[key][index]=record;
       if(draftKind==='setup')next.trades.forEach(t=>{if(t.setupID===record.id)t.setupName=record.name;});await persist(next);editor.close();notify('Saved.');
     }else if(form.id==='preferences'){
@@ -132,9 +135,9 @@ document.addEventListener('submit',async event=>{
     }else if(form.id==='instruments'){
       const enabled=fields.getAll('enabled-instrument');next.instruments.forEach(i=>i.enabled=enabled.includes(i.symbol));const symbol=fields.get('new-symbol').trim().toUpperCase();if(symbol&&!next.instruments.some(i=>i.symbol===symbol))next.instruments.push({id:crypto.randomUUID(),symbol,enabled:true});await persist(next);notify('Instruments saved.');
     }else if(form.id==='rules'){const name=fields.get('new-rule').trim();if(name&&!next.rules.some(r=>r.name===name))next.rules.push({id:crypto.randomUUID(),name});await persist(next);notify('Rules saved.');}
-  }catch(error){const message=error.issues?error.issues.map(i=>i.message).join('\n'):error.message;if($('#form-error')&&editor.open){$('#form-error').textContent=message;$('#form-error').scrollIntoView({block:'nearest'});}else report(error);}finally{busy=false;if(submit)submit.disabled=false;}
+  }catch(error){const message=errorText(error);if($('#form-error')&&editor.open){$('#form-error').textContent=message;$('#form-error').scrollIntoView({block:'nearest'});}else report(error);}finally{busy=false;if(submit)submit.disabled=false;}
 });
 editor.addEventListener('close',()=>{draftShots=[];draftKind=undefined;});
 matchMedia('(prefers-color-scheme: light)').addEventListener('change',()=>{if(data?.preferences.theme==='System')render();});
-async function start(){try{if(!api)throw new Error('Open Liquidity Edge from the installed application.');data=await api.load();state.demo=false;render();}catch(error){$('#app').innerHTML=`<main><h1>Unable to open your journal</h1><p class="error">${esc(error.message)}</p>${command('retry','Retry')}${api?command('recover','Restore JSON backup'):''}</main>`;$('[data-action=retry]').onclick=start;const recover=$('[data-action=recover]');if(recover)recover.onclick=async()=>{try{const restored=await api.importBackup();if(restored){data=restored;state.demo=false;render();}}catch(e){report(e);}};}}
+async function start(){try{if(!api)throw new Error('Open Liquidity Edge from the installed application.');data=await api.load();state.demo=false;render();}catch(error){$('#app').innerHTML=`<main><h1>Günlük açılamadı</h1><p class="error">${esc(errorText(error))}</p>${command('retry','Retry')}${api?command('recover','Restore JSON backup'):''}</main>`;$('[data-action=retry]').onclick=start;const recover=$('[data-action=recover]');if(recover)recover.onclick=async()=>{try{const restored=await api.importBackup();if(restored){data=restored;state.demo=false;render();}}catch(e){report(e);}};}}
 start();

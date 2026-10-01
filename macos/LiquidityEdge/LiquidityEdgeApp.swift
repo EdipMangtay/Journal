@@ -29,13 +29,13 @@ import SwiftUI
                         .environment(store).id(ObjectIdentifier(store))
                         .preferredColorScheme(store.preferences.theme == "System" ? nil : store.preferences.theme == "Light" ? .light : .dark)
                 } else {
-                    VStack(spacing: 20) { Text("Unable to open your journal").font(.title); Text(runtime.launchError ?? "Unknown storage error").textSelection(.enabled); Button("Retry") { runtime.load(demo: false) } }.padding(40)
+                    VStack(spacing: 20) { Text(L10n.text("Unable to open your journal")).font(.title); Text(L10n.text(runtime.launchError ?? "Unknown storage error")).textSelection(.enabled); Button(L10n.text("Retry")) { runtime.load(demo: false) } }.padding(40)
                 }
-            }.frame(minWidth: 1060, minHeight: 720)
+            }.environment(\.locale, L10n.locale).frame(minWidth: 1060, minHeight: 720)
         }.defaultSize(width: 1440, height: 960).windowStyle(.hiddenTitleBar)
         .commands {
-            CommandGroup(replacing: .newItem) { Button("New Trade") { NotificationCenter.default.post(name: .newTrade, object: nil) }.keyboardShortcut("n", modifiers: .command) }
-            CommandGroup(after: .newItem) { Button("Search & Commands") { NotificationCenter.default.post(name: .commandPalette, object: nil) }.keyboardShortcut("k", modifiers: .command) }
+            CommandGroup(replacing: .newItem) { Button(L10n.text("New Trade")) { NotificationCenter.default.post(name: .newTrade, object: nil) }.keyboardShortcut("n", modifiers: .command) }
+            CommandGroup(after: .newItem) { Button(L10n.text("Search & Commands")) { NotificationCenter.default.post(name: .commandPalette, object: nil) }.keyboardShortcut("k", modifiers: .command) }
         }
     }
 }

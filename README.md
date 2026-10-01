@@ -2,13 +2,20 @@
 
 macOS ve Windows için profesyonel çevrimdışı (offline) işlem günlüğü. İşlemler, performans analitiği, seans takvimi, strateji rehberi (playbook), canlı periyot değerlendirmeleri, görsel grafik notları ve taşınabilir JSON yedekleme.
 
-## Kurulum Dosyaları (İndir)
+## Hazır Kurulum Dosyaları (İndir)
 
-| Platform | Kurulum Paketi | Gereksinimler |
-| --- | --- | --- |
-| Windows | [Setup.exe İndir](https://github.com/EdipMangtay/Journal/releases/download/v1.1.0-preview.1/Liquidity-Edge-Windows-Setup.exe) | Windows 10 / 11, 64-bit |
-| macOS (PKG) | [PKG Kurulum Dosyası İndir](https://github.com/EdipMangtay/Journal/releases/download/v1.1.0-preview.1/Liquidity-Edge-macOS-Universal.pkg) | macOS 14+, Apple Silicon veya Intel |
-| macOS (DMG) | [DMG İndir](https://github.com/EdipMangtay/Journal/releases/download/v1.1.0-preview.1/Liquidity-Edge-macOS-Universal.dmg) | Uygulamalar klasörüne sürükleyin |
+Doğrudan aşağıdaki resmi kurulum dosyalarından birini indirin. Kaynak kodu zip dosyasını indirmeyin; kurulum paketleri tüm çalışma ortamını içerir.
+
+- 🪟 **Windows Kurulumu (EXE):** [Liquidity-Edge-Windows-Setup.exe](https://github.com/EdipMangtay/Journal/releases/download/v1.1.0-preview.1/Liquidity-Edge-Windows-Setup.exe) *(117.58 MB — Windows 10/11 x64)*
+- 🍏 **macOS Kurulum Paketi (PKG):** [Liquidity-Edge-macOS-Universal.pkg](https://github.com/EdipMangtay/Journal/releases/download/v1.1.0-preview.1/Liquidity-Edge-macOS-Universal.pkg) *(2.74 MB — Apple Silicon & Intel)*
+- 💿 **macOS Alternatif (DMG):** [Liquidity-Edge-macOS-Universal.dmg](https://github.com/EdipMangtay/Journal/releases/download/v1.1.0-preview.1/Liquidity-Edge-macOS-Universal.dmg) *(3.23 MB — Sürükle & Bırak)*
+- 📦 **Tüm Sürümler ve Dosyalar:** [Liquidity Edge v1.1.0-preview.1 Release Sayfası](https://github.com/EdipMangtay/Journal/releases/tag/v1.1.0-preview.1)
+
+| Platform | Kurulum Paketi | Boyut | Gereksinimler |
+| --- | --- | --- | --- |
+| **Windows 10 / 11** | [Liquidity-Edge-Windows-Setup.exe](https://github.com/EdipMangtay/Journal/releases/download/v1.1.0-preview.1/Liquidity-Edge-Windows-Setup.exe) | 117.58 MB | 64-bit Windows, ek yazılım gerektirmez |
+| **macOS (PKG)** | [Liquidity-Edge-macOS-Universal.pkg](https://github.com/EdipMangtay/Journal/releases/download/v1.1.0-preview.1/Liquidity-Edge-macOS-Universal.pkg) | 2.74 MB | macOS 14+, Apple Silicon veya Intel |
+| **macOS (DMG)** | [Liquidity-Edge-macOS-Universal.dmg](https://github.com/EdipMangtay/Journal/releases/download/v1.1.0-preview.1/Liquidity-Edge-macOS-Universal.dmg) | 3.23 MB | Uygulamalar (Applications) klasörüne sürükleyin |
 
 Kurulum paketleri uygulamanın çalışması için gereken tüm bileşenleri içerir. Ek bir geliştirici aracı veya çalışma ortamı kurmanıza gerek yoktur. Dosyaları kaynak kodu ZIP'inden değil, **Releases** bölümünden indiriniz.
 

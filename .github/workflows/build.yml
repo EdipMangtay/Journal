@@ -38,6 +38,24 @@ jobs:
           npm run test:e2e
           if ($LASTEXITCODE -ne 0) { throw 'Installed application tests failed.' }
           Get-FileHash $installer -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  Liquidity-Edge-Windows-Setup.exe" } | Set-Content -Encoding utf8 release/SHA256SUMS-Windows.txt
+      - name: Verify reinstall and uninstall preserve journal data
+        shell: pwsh
+        run: |
+          $installer = Join-Path $PWD 'release/Liquidity-Edge-Windows-Setup.exe'
+          $target = Join-Path $env:RUNNER_TEMP 'LiquidityEdgeInstalled'
+          $data = Join-Path $env:APPDATA 'Liquidity Edge'
+          New-Item -ItemType Directory -Force -Path $data | Out-Null
+          $marker = Join-Path $data 'installer-preservation-test.txt'
+          Set-Content -Path $marker -Value 'Keep journal data'
+          $process = Start-Process -FilePath $installer -ArgumentList '/S', "/D=$target" -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw 'Reinstall failed.' }
+          Get-Process 'Liquidity Edge' -ErrorAction SilentlyContinue | Stop-Process -Force
+          if (!(Test-Path $marker)) { throw 'Reinstall removed journal data.' }
+          $uninstaller = Join-Path $target 'Uninstall Liquidity Edge.exe'
+          Start-Process -FilePath $uninstaller -ArgumentList '/S' -Wait
+          Start-Sleep -Seconds 3
+          if (!(Test-Path $marker)) { throw 'Uninstall removed journal data.' }
+          if (Test-Path (Join-Path $target 'Liquidity Edge.exe')) { throw 'Uninstall did not remove the executable.' }
       - uses: actions/upload-artifact@v4
         with:
           name: Windows-Installer
@@ -66,7 +84,39 @@ jobs:
           pkgutil --expand-full release/Liquidity-Edge-macOS-Universal.pkg build/expanded-package
           find build/expanded-package -name 'Liquidity Edge' -type f -exec file {} \;
           hdiutil verify release/Liquidity-Edge-macOS-Universal.dmg
+      - name: Install PKG and launch the installed application
+        run: |
+          sudo installer -pkg release/Liquidity-Edge-macOS-Universal.pkg -target /
+          swiftc -parse-as-library Scripts/verify-installed.swift -o build/verify-installed
+          build/verify-installed '/Applications/Liquidity Edge.app'
+      - name: Verify the DMG application can launch
+        run: |
+          mkdir -p build/dmg-mounted
+          hdiutil attach release/Liquidity-Edge-macOS-Universal.dmg -mountpoint "$PWD/build/dmg-mounted" -nobrowse -readonly
+          trap 'hdiutil detach "$PWD/build/dmg-mounted"' EXIT
+          ditto 'build/dmg-mounted/Liquidity Edge.app' 'build/dmg-application/Liquidity Edge.app'
+          build/verify-installed "$PWD/build/dmg-application/Liquidity Edge.app"
       - uses: actions/upload-artifact@v4
         with:
           name: macOS-Installers
           path: macos/release/*
+  publish:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [windows, macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: Windows-Installer
+          path: installers
+      - uses: actions/download-artifact@v4
+        with:
+          name: macOS-Installers
+          path: installers
+      - name: Publish verified installers
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" installers/* --verify-tag --title "Liquidity Edge $GITHUB_REF_NAME" --notes-file RELEASE-NOTES.md
